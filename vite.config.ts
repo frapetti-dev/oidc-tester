@@ -21,6 +21,7 @@ export default defineConfig({
 		})
 	],
 	clearScreen: false,
+	optimizeDeps: { include: ['jose', 'zod'] },
 	server: { port: 5173, strictPort: true, watch: { ignored: ['**/src-tauri/**'] } },
 	test: {
 		expect: {

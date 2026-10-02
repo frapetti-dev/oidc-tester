@@ -1,13 +1,19 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import SelectField from '$lib/components/ui/SelectField.svelte';
-	import type { SidebarIdp, SidebarWorkspace } from './types';
+	import type { SidebarFlow, SidebarIdp, SidebarWorkspace } from './types';
 
 	interface Props {
 		workspaces: SidebarWorkspace[];
 		workspaceId: string;
 		idps: SidebarIdp[];
 		selectedFlowId?: string;
+		selectedIdpId?: string;
+		onselectidp?: (idpId: string) => void;
+		/** Per-IdP buttons (add flow, duplicate, delete). */
+		idpActions?: Snippet<[SidebarIdp]>;
+		/** Per-flow buttons (duplicate, delete). */
+		flowActions?: Snippet<[SidebarIdp, SidebarFlow]>;
 		onworkspacechange?: (workspaceId: string) => void;
 		onselectflow?: (idpId: string, flowId: string) => void;
 		/** Workspace-level buttons (save as, rename, delete, export, import, add IdP). */
@@ -19,6 +25,10 @@
 		workspaceId = $bindable(),
 		idps,
 		selectedFlowId,
+		selectedIdpId,
+		onselectidp,
+		idpActions,
+		flowActions,
 		onworkspacechange,
 		onselectflow,
 		actions
@@ -48,16 +58,28 @@
 			<ul role="tree" aria-label="IdPs and flows" class="space-y-2">
 				{#each idps as idp (idp.id)}
 					<li role="none">
-						<div class="px-1 text-sm font-semibold">{idp.name}</div>
+						<div class="flex items-center justify-between gap-1">
+							<button
+								type="button"
+								class={[
+									'min-w-0 flex-1 cursor-pointer truncate rounded-control px-1 py-0.5 text-left text-sm font-semibold hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent',
+									idp.id === selectedIdpId && 'text-accent'
+								]}
+								onclick={() => onselectidp?.(idp.id)}>{idp.name}</button
+							>
+							{#if idpActions}
+								<div class="flex shrink-0 gap-0.5">{@render idpActions(idp)}</div>
+							{/if}
+						</div>
 						<ul role="group" class="mt-0.5 border-l border-border pl-2">
 							{#each idp.flows as flow (flow.id)}
-								<li role="none">
+								<li role="none" class="flex items-center gap-0.5">
 									<button
 										type="button"
 										role="treeitem"
 										aria-selected={flow.id === selectedFlowId}
 										class={[
-											'flex w-full cursor-pointer items-center justify-between gap-2 rounded-control px-2 py-1 text-left text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent',
+											'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-control px-2 py-1 text-left text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent',
 											flow.id === selectedFlowId && 'bg-surface-sunken font-medium text-accent'
 										]}
 										onclick={() => onselectflow?.(idp.id, flow.id)}
@@ -65,6 +87,9 @@
 										<span class="truncate">{flow.name}</span>
 										<span class="shrink-0 font-mono text-xs text-fg-muted">{flow.type}</span>
 									</button>
+									{#if flowActions}
+										<div class="flex shrink-0 gap-0.5">{@render flowActions(idp, flow)}</div>
+									{/if}
 								</li>
 							{:else}
 								<li role="none" class="px-2 py-1 text-xs text-fg-muted">No flows</li>
