@@ -11,11 +11,13 @@
 		/** Id of the selected tab; defaults to the first tab. */
 		active?: string;
 		label?: string;
+		/** Inset the tab list and panel (editor use); results panes run edge to edge. */
+		padded?: boolean;
 		/** Renders the content of the selected tab. */
 		panel: Snippet<[string]>;
 	}
 
-	let { tabs, active = $bindable(), label, panel }: Props = $props();
+	let { tabs, active = $bindable(), label, padded = false, panel }: Props = $props();
 
 	const uid = $props.id();
 	const current = $derived(tabs.some((t) => t.id === active) ? active : tabs[0]?.id);
@@ -39,7 +41,11 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
-	<div role="tablist" aria-label={label} class="flex shrink-0 border-b border-border">
+	<div
+		role="tablist"
+		aria-label={label}
+		class={['flex shrink-0 border-b border-border', padded && 'px-2']}
+	>
 		{#each tabs as tab, i (tab.id)}
 			<button
 				type="button"
@@ -61,7 +67,7 @@
 			role="tabpanel"
 			id="{uid}-panel"
 			aria-labelledby="{uid}-tab-{current}"
-			class="min-h-0 flex-1 overflow-auto"
+			class={['min-h-0 flex-1 overflow-auto', padded && 'p-4']}
 		>
 			{@render panel(current)}
 		</div>

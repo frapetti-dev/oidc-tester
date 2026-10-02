@@ -51,7 +51,7 @@
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-auto p-2">
-		<div class="panel-header border-b-0 px-1">{workspaceName}</div>
+		<div class="px-1 pt-1 pb-2 text-xs font-medium text-fg-muted">{workspaceName}</div>
 		{#if idps.length === 0}
 			<p class="px-1 py-2 text-sm text-fg-muted">No IdPs yet</p>
 		{:else}
@@ -62,7 +62,7 @@
 							<button
 								type="button"
 								class={[
-									'min-w-0 flex-1 cursor-pointer truncate rounded-control px-1 py-0.5 text-left text-sm font-semibold hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent',
+									'min-w-0 flex-1 cursor-pointer truncate rounded-control px-1 py-0.5 text-left text-sm font-semibold hover:bg-surface-sunken',
 									idp.id === selectedIdpId && 'text-accent'
 								]}
 								onclick={() => onselectidp?.(idp.id)}>{idp.name}</button
@@ -71,7 +71,7 @@
 								<div class="flex shrink-0 gap-0.5">{@render idpActions(idp)}</div>
 							{/if}
 						</div>
-						<ul role="group" class="mt-0.5 border-l border-border pl-2">
+						<ul role="group" class="mt-1">
 							{#each idp.flows as flow (flow.id)}
 								<li role="none" class="flex items-center gap-0.5">
 									<button
@@ -79,13 +79,16 @@
 										role="treeitem"
 										aria-selected={flow.id === selectedFlowId}
 										class={[
-											'flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-control px-2 py-1 text-left text-sm hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-accent',
-											flow.id === selectedFlowId && 'bg-surface-sunken font-medium text-accent'
+											'flex min-w-0 flex-1 cursor-pointer flex-col items-start border-l-2 border-transparent px-2.5 py-1 text-left text-sm hover:bg-surface-sunken',
+											flow.id === selectedFlowId && 'border-accent bg-surface-sunken font-semibold'
 										]}
 										onclick={() => onselectflow?.(idp.id, flow.id)}
 									>
-										<span class="truncate">{flow.name}</span>
-										<span class="shrink-0 font-mono text-xs text-fg-muted">{flow.type}</span>
+										<span class="max-w-full truncate">{flow.name}</span>
+										<span
+											class="max-w-full truncate font-mono text-[0.68rem] font-normal text-fg-muted"
+											>{flow.type}</span
+										>
 									</button>
 									{#if flowActions}
 										<div class="flex shrink-0 gap-0.5">{@render flowActions(idp, flow)}</div>

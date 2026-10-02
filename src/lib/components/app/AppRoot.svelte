@@ -137,11 +137,12 @@
 </script>
 
 <div class="flex h-screen flex-col">
-	<header
-		class="flex shrink-0 items-center justify-between border-b border-border bg-surface-raised px-3 py-1.5"
-	>
-		<span class="text-sm font-semibold">OIDC Tester</span>
-		<ThemeToggle />
+	<header class="shrink-0 bg-surface-raised">
+		<div class="flex items-center justify-between px-3 py-1.5">
+			<span class="text-sm font-semibold tracking-tight">OIDC Tester</span>
+			<ThemeToggle />
+		</div>
+		<div class="seal-rule" aria-hidden="true"></div>
 	</header>
 
 	{#if store.banner}
@@ -222,6 +223,7 @@
 							<FlowEditor title={editorTab === 'idp' || !flow ? idp.name : flow.name}>
 								<Tabs
 									label="Editor"
+									padded
 									tabs={flow
 										? [
 												{ id: 'flow', label: 'Flow' },

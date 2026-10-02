@@ -1,5 +1,6 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { createServer, type AddressInfo } from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -38,6 +39,22 @@ async function connect(port: number): Promise<Browser> {
 	throw new Error('Could not attach to the app over CDP');
 }
 
+/**
+ * Stops the WebView2 processes that use `profileDir` and waits until they are gone, so a relaunch
+ * on the same profile cannot attach to a dying browser (and the folder can be deleted).
+ * Matches on the profile path only; other apps' WebView2 processes are left alone.
+ */
+async function releaseProfile(profileDir: string): Promise<void> {
+	const script = `$p = @(Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -like '*${profileDir}*' }); $p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; $p.Count`;
+	for (let attempt = 0; attempt < 20; attempt++) {
+		const left = execFileSync('powershell', ['-NoProfile', '-Command', script], {
+			encoding: 'utf8'
+		});
+		if (Number(left.trim()) === 0) return;
+		await sleep(250);
+	}
+}
+
 /** Starts the app with documents, browser profile and WebView2 data redirected into `dataRoot`. */
 async function launch(dataRoot: string): Promise<RunningApp> {
 	const port = await freePort();
@@ -52,9 +69,13 @@ async function launch(dataRoot: string): Promise<RunningApp> {
 	});
 	const browser = await connect(port);
 	const context = browser.contexts()[0];
-	const page =
-		context.pages().find((p) => p.url().includes('tauri.localhost')) ??
-		(await context.waitForEvent('page'));
+	// The page can still be about:blank when CDP attaches, so poll for the app URL.
+	let page: Page | undefined;
+	for (let attempt = 0; attempt < 120 && !page; attempt++) {
+		page = context.pages().find((p) => p.url().includes('tauri.localhost'));
+		if (!page) await sleep(250);
+	}
+	if (!page) throw new Error('The app window never loaded http://tauri.localhost');
 	await page.waitForLoadState('domcontentloaded');
 	await waitForApp(page);
 	return {
@@ -68,6 +89,7 @@ async function launch(dataRoot: string): Promise<RunningApp> {
 					// already exited
 				}
 			}
+			await releaseProfile(join(dataRoot, 'webview2'));
 		}
 	};
 }
@@ -82,7 +104,8 @@ export const test = base.extend<Fixtures>({
 	dataRoot: async ({}, use) => {
 		const dir = mkdtempSync(join(tmpdir(), 'oidct-native-'));
 		await use(dir);
-		rmSync(dir, { recursive: true, force: true });
+		// WebView2 child processes can hold the profile for a moment after the kill.
+		await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 });
 	},
 	launch: async ({ dataRoot }, use) => {
 		const running: RunningApp[] = [];

@@ -14,9 +14,11 @@
 <main aria-label="Flow editor" class="flex h-full min-h-0 flex-col">
 	{#if children}
 		{#if title}
-			<h1 class="shrink-0 border-b border-border px-4 py-2 text-base font-semibold">{title}</h1>
+			<h1 class="shrink-0 border-b border-border px-4 py-2.5 text-lg font-semibold tracking-tight">
+				{title}
+			</h1>
 		{/if}
-		<div class="min-h-0 flex-1 overflow-auto p-4">{@render children()}</div>
+		<div class="flex min-h-0 flex-1 flex-col">{@render children()}</div>
 	{:else}
 		<div class="flex flex-1 items-center justify-center p-6 text-sm text-fg-muted">
 			No flow selected
