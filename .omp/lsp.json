@@ -1,0 +1,15 @@
+{
+	"servers": {
+		"rust-analyzer": {
+			"command": "C:/Users/f.rapetti/.cargo/bin/rust-analyzer.exe",
+			"rootMarkers": ["src-tauri/Cargo.toml"],
+			"initOptions": { "linkedProjects": ["src-tauri/Cargo.toml"] }
+		},
+		"svelte": {
+			"rootMarkers": ["svelte.config.js", "vite.config.ts"]
+		},
+		"tailwindcss": {
+			"rootMarkers": ["vite.config.ts", "src/app.css"]
+		}
+	}
+}
