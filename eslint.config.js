@@ -38,8 +38,8 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		// Playwright fixtures must destructure their first argument, even when unused.
+		files: ['e2e/**/*.ts'],
+		rules: { 'no-empty-pattern': 'off' }
 	}
 );

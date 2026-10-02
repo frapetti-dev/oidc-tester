@@ -29,6 +29,8 @@ On Windows, cargo lives in `%USERPROFILE%\.cargo\bin`; add it to PATH if a shell
 - **All OAuth logic is pure TypeScript** (unit-testable): URL building, PKCE, client auth, token requests, callback parsing, discovery, JWT decode/verify, ID-token validation, CORS evaluation, HAR, cURL, device polling.
 - The popup webview has **no IPC access**: `src-tauri/capabilities/default.json` lists `"windows": ["main"]` only.
 - Custom headers apply to back-channel calls only (discovery, JWKS, token, userinfo, device authorization). The front-channel authorize request gets arbitrary extra query params instead.
+- E2E isolation: `OIDCT_DATA_DIR` (REQ-STORE-004) overrides the app data root; native specs launch the debug exe with a temp dir plus `WEBVIEW2_USER_DATA_FOLDER` and a per-launch CDP port, so the real profile and keychain stay untouched. `pnpm test:e2e:native` builds the exe first (`native-build` project); set `E2E_SKIP_BUILD=1` to reuse a fresh `src-tauri/target/debug/oidc-tester.exe`. Web e2e serves `vite dev` on port 15174 with `VITE_E2E=1` (`src/lib/ipc/e2e.ts` forwards IPC to Node).
+- reqwest uses `rustls-no-provider` + the ring provider (aws-lc needs NASM), compression features off.
 - `response_mode=form_post` is not offered (navigation hook sees URLs only). Offered: `query`, `fragment`, default (omit).
 - SPA via adapter-static (`fallback: 'index.html'`), `src/routes/+layout.ts`: `ssr = false`, `prerender = false`. Do not use `base`/`assets`/`resolveRoute` from `$app/paths`.
 - Svelte state: classes with runes in `src/lib/state/*.svelte.ts`; no stores. Persisted data validated with `zod` (`src/lib/model/schema.ts`, `schemaVersion: 1`). JWT/crypto via `jose` + WebCrypto.

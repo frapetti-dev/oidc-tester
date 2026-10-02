@@ -218,7 +218,7 @@ pub async fn auth_window_open(
         // WebView2 private mode: no cookies/cache survive the window.
         builder.incognito(true)
     } else {
-        let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        let app_data = crate::storage::app_data_dir(&app).map_err(|e| e.to_string())?;
         builder.data_directory(profile_dir(&app_data))
     };
 
@@ -276,7 +276,7 @@ pub async fn auth_window_close(app: AppHandle) -> Result<(), String> {
 pub async fn browser_clear_session(app: AppHandle) -> Result<(), String> {
     destroy_auth_window(&app);
     wait_until_closed(&app).await;
-    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let app_data = crate::storage::app_data_dir(&app).map_err(|e| e.to_string())?;
     remove_profile(&profile_dir(&app_data), 15, Duration::from_millis(200)).await
 }
 

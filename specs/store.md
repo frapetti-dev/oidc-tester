@@ -28,3 +28,12 @@ When `doc_list(dir)` runs
 Then it returns, sorted and de-duplicated, the file stems of the `*.json` files directly inside `dir` plus the names of its immediate subdirectories (e.g. `a.json`, `b.json`, `c.txt` and `d/` give `["a","b","d"]`)
 And a missing `dir` returns an empty list
 And `doc_delete(path)` removes a file or a directory recursively
+
+### REQ-STORE-004 Data directory override
+
+Status: Accepted
+
+Given the environment variable `OIDCT_DATA_DIR` is set to a non-empty path
+When the app resolves where it keeps its documents and the persistent browser profile
+Then documents live in `<OIDCT_DATA_DIR>/data` and the browser profile in `<OIDCT_DATA_DIR>/browser-profile`
+And when the variable is unset or empty the OS app-data directory is used unchanged

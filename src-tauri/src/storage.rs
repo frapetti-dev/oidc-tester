@@ -109,11 +109,32 @@ pub fn delete(root: &Path, path: &str) -> Result<(), AppError> {
     result.map_err(|e| io_error("delete", path, e))
 }
 
+/// Environment variable that relocates all app data (documents and browser profile); used by the
+/// E2E suite so tests never touch the real profile.
+pub const DATA_DIR_ENV: &str = "OIDCT_DATA_DIR";
+
+/// `override_dir` (when non-empty) wins over the OS app-data directory (REQ-STORE-004).
+fn resolve_app_data_dir(
+    override_dir: Option<String>,
+    os_dir: impl FnOnce() -> Result<PathBuf, AppError>,
+) -> Result<PathBuf, AppError> {
+    match override_dir.filter(|dir| !dir.is_empty()) {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => os_dir(),
+    }
+}
+
+/// The directory holding documents and the browser profile.
+pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, AppError> {
+    resolve_app_data_dir(std::env::var(DATA_DIR_ENV).ok(), || {
+        app.path()
+            .app_data_dir()
+            .map_err(|e| AppError::message(format!("could not resolve app data directory: {e}")))
+    })
+}
+
 fn data_root(app: &AppHandle) -> Result<PathBuf, AppError> {
-    app.path()
-        .app_data_dir()
-        .map(|dir| dir.join("data"))
-        .map_err(|e| AppError::message(format!("could not resolve app data directory: {e}")))
+    app_data_dir(app).map(|dir| dir.join("data"))
 }
 
 #[tauri::command]
@@ -249,5 +270,20 @@ mod tests {
         assert_eq!(read(root.path(), "ws/one/runs/r1.json").unwrap(), None);
 
         delete(root.path(), "ws/never-existed").expect("deleting a missing path succeeds");
+    }
+
+    #[test]
+    fn req_store_004_data_dir_override_wins_only_when_non_empty() {
+        let os_dir = std::path::Path::new("/os/app-data");
+        assert_eq!(
+            resolve_app_data_dir(Some("/tmp/e2e".into()), || Ok(os_dir.to_path_buf())).unwrap(),
+            std::path::PathBuf::from("/tmp/e2e")
+        );
+        for unset in [None, Some(String::new())] {
+            assert_eq!(
+                resolve_app_data_dir(unset, || Ok(os_dir.to_path_buf())).unwrap(),
+                os_dir
+            );
+        }
     }
 }
