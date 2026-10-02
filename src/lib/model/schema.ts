@@ -140,6 +140,11 @@ export function newId(): string {
 	return crypto.randomUUID();
 }
 
+/** Current time as an RFC 3339 string. */
+export function nowIso(): string {
+	return new Date().toISOString();
+}
+
 export function newHttpSettings(): HttpSettings {
 	return {
 		headers: [],
@@ -206,7 +211,7 @@ export function newIdp(name = 'New IdP'): Idp {
 }
 
 export function newWorkspace(name: string, id: string = newId()): Workspace {
-	const now = new Date().toISOString();
+	const now = nowIso();
 	return { schemaVersion: SCHEMA_VERSION, id, name, createdAt: now, updatedAt: now, idps: [] };
 }
 

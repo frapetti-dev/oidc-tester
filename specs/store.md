@@ -23,7 +23,8 @@ Then it fails with the error `invalid path` and touches no file
 
 Status: Accepted
 
-Given documents in a directory
+Given a directory containing `*.json` files, other files and subdirectories
 When `doc_list(dir)` runs
-Then it returns file stems of `*.json` files only
+Then it returns, sorted and de-duplicated, the file stems of the `*.json` files directly inside `dir` plus the names of its immediate subdirectories (e.g. `a.json`, `b.json`, `c.txt` and `d/` give `["a","b","d"]`)
+And a missing `dir` returns an empty list
 And `doc_delete(path)` removes a file or a directory recursively

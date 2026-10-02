@@ -25,3 +25,18 @@ tauri = { version = "2.12.1", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+tokio = { version = "1.53.1", features = ["full"] }
+url = "2.5.8"
+uuid = { version = "1.26.1", features = ["v4"] }
+time = { version = "0.3.55", features = ["formatting"] }
+thiserror = "2.0.21"
+keyring = { version = "3", features = ["windows-native"] }
+base64 = "0.23.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "http2", "system-proxy"] }
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
+
+[dev-dependencies]
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"] }
+tempfile = "3.27.0"
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12"] }
+wiremock = "0.6.5"

@@ -1,3 +1,155 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Raw values live in CSS variables so the `.dark` class can swap them at runtime. */
+:root {
+	--c-surface: #f4f5f7;
+	--c-surface-raised: #ffffff;
+	--c-surface-sunken: #eceef2;
+	--c-border: #d5d9e0;
+	--c-fg: #1a1d24;
+	--c-fg-muted: #5a6372;
+	--c-accent: #3556d6;
+	--c-accent-fg: #ffffff;
+	--c-danger: #c8243a;
+	--c-success: #1b7f47;
+	--c-warning: #a86a0a;
+	--c-info: #2373ad;
+	--c-jwt-header: #d1306b;
+	--c-jwt-payload: #6a40d8;
+	--c-jwt-signature: #0b8794;
+	--c-method-get: #1b7f47;
+	--c-method-post: #2373ad;
+	color-scheme: light;
+}
+
+.dark {
+	--c-surface: #13151a;
+	--c-surface-raised: #1b1e25;
+	--c-surface-sunken: #0e1013;
+	--c-border: #2c313b;
+	--c-fg: #e4e7ec;
+	--c-fg-muted: #98a1af;
+	--c-accent: #7b9bff;
+	--c-accent-fg: #0e1013;
+	--c-danger: #ff7385;
+	--c-success: #4ccb8c;
+	--c-warning: #f2b44f;
+	--c-info: #5fb0ea;
+	--c-jwt-header: #ff6f9f;
+	--c-jwt-payload: #b79cff;
+	--c-jwt-signature: #4fd3e3;
+	--c-method-get: #4ccb8c;
+	--c-method-post: #5fb0ea;
+	color-scheme: dark;
+}
+
+@theme inline {
+	--color-surface: var(--c-surface);
+	--color-surface-raised: var(--c-surface-raised);
+	--color-surface-sunken: var(--c-surface-sunken);
+	--color-border: var(--c-border);
+	--color-fg: var(--c-fg);
+	--color-fg-muted: var(--c-fg-muted);
+	--color-accent: var(--c-accent);
+	--color-accent-fg: var(--c-accent-fg);
+	--color-danger: var(--c-danger);
+	--color-success: var(--c-success);
+	--color-warning: var(--c-warning);
+	--color-info: var(--c-info);
+	--color-jwt-header: var(--c-jwt-header);
+	--color-jwt-payload: var(--c-jwt-payload);
+	--color-jwt-signature: var(--c-jwt-signature);
+	--color-method-get: var(--c-method-get);
+	--color-method-post: var(--c-method-post);
+}
+
+@theme {
+	--font-mono:
+		ui-monospace, 'Cascadia Code', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+	--radius-control: 0.375rem;
+}
+
+@layer base {
+	html,
+	body {
+		height: 100%;
+	}
+	body {
+		background-color: var(--c-surface);
+		color: var(--c-fg);
+		font-size: 0.875rem;
+		line-height: 1.35;
+	}
+}
+
+@utility btn {
+	@apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-control border border-border bg-surface-raised px-2.5 py-1 text-sm font-medium whitespace-nowrap text-fg select-none hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-primary {
+	@apply border-accent bg-accent text-accent-fg hover:bg-accent hover:brightness-110;
+}
+
+@utility btn-ghost {
+	@apply border-transparent bg-transparent hover:bg-surface-sunken;
+}
+
+@utility btn-danger {
+	@apply border-danger bg-transparent text-danger hover:bg-danger/10;
+}
+
+@utility input-field {
+	@apply block w-full rounded-control border border-border bg-surface-raised px-2 py-1 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@utility check-field {
+	@apply size-4 rounded-sm border-border bg-surface-raised text-accent focus:ring-1 focus:ring-accent focus:ring-offset-0;
+}
+
+@utility field-label {
+	@apply mb-1 block text-xs font-medium text-fg-muted;
+}
+
+@utility panel {
+	@apply rounded-control border border-border bg-surface-raised;
+}
+
+@utility panel-header {
+	@apply flex items-center justify-between gap-2 border-b border-border px-3 py-1.5 text-xs font-semibold tracking-wide text-fg-muted uppercase;
+}
+
+@utility badge {
+	@apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-sunken px-2 py-0.5 text-xs font-medium whitespace-nowrap text-fg-muted;
+}
+
+@utility badge-success {
+	@apply border-success/40 bg-success/10 text-success;
+}
+
+@utility badge-danger {
+	@apply border-danger/40 bg-danger/10 text-danger;
+}
+
+@utility badge-warning {
+	@apply border-warning/40 bg-warning/10 text-warning;
+}
+
+@utility kv-grid {
+	@apply grid grid-cols-[auto_1fr_1fr_auto] items-center gap-x-2 gap-y-1.5;
+}
+
+@utility code-block {
+	@apply overflow-auto rounded-control border border-border bg-surface-sunken p-3 font-mono text-xs leading-relaxed whitespace-pre text-fg;
+}
+
+@utility tab {
+	@apply -mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-sm font-medium text-fg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-accent;
+}
+
+@utility tab-active {
+	@apply border-accent text-fg;
+}
