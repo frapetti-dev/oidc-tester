@@ -1,4 +1,4 @@
-import type { IpcApi } from '$lib/ipc/types';
+import type { IpcApi } from '#lib/ipc/types.js';
 import {
 	SCRATCHPAD_ID,
 	nowIso,
@@ -6,7 +6,7 @@ import {
 	type FlowType,
 	type Idp,
 	type Workspace
-} from '$lib/model/schema';
+} from '#lib/model/schema.js';
 import { createDebouncedSaver, type DebouncedSaver } from './autosave';
 import {
 	addFlow,

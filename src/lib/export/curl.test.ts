@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { HttpExchange } from '$lib/ipc/types';
+import type { HttpExchange } from '#lib/ipc/types.js';
 import { toCurl } from './curl';
 
 function exchange(overrides: Partial<HttpExchange['request']> = {}): HttpExchange {

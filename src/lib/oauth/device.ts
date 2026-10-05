@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type { Header, IpcApi } from '$lib/ipc/types';
-import type { RunError, Tokens, Validation } from '$lib/model/run';
-import type { Flow, Idp } from '$lib/model/schema';
+import type { Header, IpcApi } from '#lib/ipc/types.js';
+import type { RunError, Tokens, Validation } from '#lib/model/run.js';
+import type { Flow, Idp } from '#lib/model/schema.js';
 import { applyClientAuth, type Param } from './clientAuth';
 import { buildTokenRequest, withExtraParams } from './tokenRequest';
 import { parseJsonResponse, parseTokenResponse } from './tokenResponse';

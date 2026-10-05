@@ -1,6 +1,6 @@
-import type { HttpExchange } from '$lib/ipc/types';
-import { newFlow, newIdp } from '$lib/model/schema';
-import type { Run } from '$lib/model/run';
+import type { HttpExchange } from '#lib/ipc/types.js';
+import { newFlow, newIdp } from '#lib/model/schema.js';
+import type { Run } from '#lib/model/run.js';
 
 export function sampleExchange(
 	id: string,

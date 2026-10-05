@@ -1,11 +1,11 @@
 import { page } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { HttpExchange, HttpRequestSpec, HttpResult } from '$lib/ipc/types';
-import type { Idp } from '$lib/model/schema';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
-import { WorkspaceStore } from '$lib/state/workspace.svelte';
-import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '$lib/state/sections.svelte';
+import type { HttpExchange, HttpRequestSpec, HttpResult } from '#lib/ipc/types.js';
+import type { Idp } from '#lib/model/schema.js';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
+import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
+import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '#lib/state/sections.svelte.js';
 import IdpForm, { type DiscoveryOutcome } from './IdpForm.svelte';
 
 const ISSUER = 'https://idp.example/realm';
@@ -63,8 +63,8 @@ async function openNetwork() {
 	await page.getByRole('button', { name: 'Network', exact: true }).click();
 }
 
-function mount() {
-	return render(IdpForm, {
+async function mount() {
+	return await render(IdpForm, {
 		idp,
 		store,
 		ipc,
@@ -77,7 +77,7 @@ describe('IdpForm', () => {
 	it('REQ-DISC-003 Discover fills only empty endpoints; Apply all overwrites after confirmation', async () => {
 		ipc.onHttpSend = async (spec) => respond(spec, 200, document());
 		idp.endpoints.token = 'https://custom.example/token';
-		mount();
+		await mount();
 
 		await page.getByRole('button', { name: 'Discover' }).click();
 		await expect
@@ -97,14 +97,14 @@ describe('IdpForm', () => {
 	it('REQ-DISC-004 shows the issuer mismatch warning', async () => {
 		ipc.onHttpSend = async (spec) =>
 			respond(spec, 200, document({ issuer: 'https://other.example' }));
-		mount();
+		await mount();
 		await page.getByRole('button', { name: 'Discover' }).click();
-		await expect.element(page.getByRole('status')).toHaveTextContent(/issuer/i);
+		await expect.element(page.getByRole('status')).toMatchTextContent(/issuer/i);
 	});
 
 	it('REQ-DISC-006 reports a discovery failure to the parent and leaves endpoints untouched', async () => {
 		ipc.onHttpSend = async (spec) => respond(spec, 500, 'boom');
-		mount();
+		await mount();
 		await page.getByRole('button', { name: 'Discover' }).click();
 		await expect.element(page.getByRole('alert')).toBeVisible();
 		await vi.waitFor(() => expect(results).toHaveLength(1));
@@ -114,7 +114,7 @@ describe('IdpForm', () => {
 	});
 
 	it('REQ-UI-004 skip-TLS toggle shows the danger badge and updates settings', async () => {
-		mount();
+		await mount();
 		await openNetwork();
 		await expect.element(page.getByText('TLS validation disabled')).not.toBeInTheDocument();
 		await page.getByRole('switch', { name: 'Skip TLS validation' }).click();
@@ -123,7 +123,7 @@ describe('IdpForm', () => {
 	});
 
 	it('REQ-SEC-002 client secret field only appears for secret methods and saves to the keychain', async () => {
-		mount();
+		await mount();
 		await expect.element(page.getByLabelText('Client secret')).not.toBeInTheDocument();
 		await page.getByLabelText('Client authentication').selectOptions('client_secret_basic');
 		const field = page.getByLabelText('Client secret');
@@ -137,14 +137,14 @@ describe('IdpForm', () => {
 	it('REQ-SEC-003 Clear removes the keychain entry', async () => {
 		await store.setClientSecret(idp, 'x');
 		idp.client.auth = 'client_secret_post';
-		mount();
+		await mount();
 		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 		await vi.waitFor(() => expect(idp.client.hasSecret).toBe(false));
 		expect(ipc.secrets.has(`idp:${idp.id}:client_secret`)).toBe(false);
 	});
 
 	it('REQ-HTTP-003 edits proxy, timeout, origin, CORS check and headers; jwt alg only for client_secret_jwt', async () => {
-		mount();
+		await mount();
 		await openNetwork();
 		await expect.element(page.getByLabelText('Assertion algorithm')).not.toBeInTheDocument();
 		await page.getByLabelText('Client authentication').selectOptions('client_secret_jwt');
@@ -168,7 +168,7 @@ describe('IdpForm', () => {
 	});
 
 	it('REQ-CAP-005 Clear browser session button notifies the parent', async () => {
-		mount();
+		await mount();
 		await openNetwork();
 		await page.getByRole('button', { name: 'Clear browser session' }).click();
 		expect(cleared).toBe(1);
@@ -176,7 +176,7 @@ describe('IdpForm', () => {
 
 	it('REQ-UI-014 Network starts collapsed, remembers being opened, and flags TLS off while collapsed', async () => {
 		idp.http.tlsInsecure = true;
-		mount();
+		await mount();
 		const network = page.getByRole('button', { name: 'Network', exact: true });
 		await expect.element(network).toHaveAttribute('aria-expanded', 'false');
 		await expect

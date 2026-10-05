@@ -1,27 +1,27 @@
 import type { JSONWebKeySet } from 'jose';
-import type { HttpExchange, HttpFailure, IpcApi, NavigationRecord } from '$lib/ipc/types';
-import { validateIdToken, type IdTokenContext } from '$lib/jwt/idToken';
-import { inspectToken } from '$lib/jwt/decode';
-import { verifySignature, type SignatureResult, type SignatureStatus } from '$lib/jwt/verify';
-import type { CallbackResult, Run, RunError, Tokens, Validation } from '$lib/model/run';
-import type { Flow, Idp } from '$lib/model/schema';
+import type { HttpExchange, HttpFailure, IpcApi, NavigationRecord } from '#lib/ipc/types.js';
+import { validateIdToken, type IdTokenContext } from '#lib/jwt/idToken.js';
+import { inspectToken } from '#lib/jwt/decode.js';
+import { verifySignature, type SignatureResult, type SignatureStatus } from '#lib/jwt/verify.js';
+import type { CallbackResult, Run, RunError, Tokens, Validation } from '#lib/model/run.js';
+import type { Flow, Idp } from '#lib/model/schema.js';
 import {
 	buildAuthorizeUrl,
 	effectiveResponseType,
 	generateAuthorizeValues,
 	type AuthorizeValues
-} from '$lib/oauth/authorize';
-import { parseCallback } from '$lib/oauth/callback';
-import { runDeviceFlow, type DeviceUserCode } from '$lib/oauth/device';
-import { requestTokens, type Grant } from '$lib/oauth/tokenRequest';
-import { parseJsonResponse } from '$lib/oauth/tokenResponse';
+} from '#lib/oauth/authorize.js';
+import { parseCallback } from '#lib/oauth/callback.js';
+import { runDeviceFlow, type DeviceUserCode } from '#lib/oauth/device.js';
+import { requestTokens, type Grant } from '#lib/oauth/tokenRequest.js';
+import { parseJsonResponse } from '#lib/oauth/tokenResponse.js';
 import {
 	buildRequestSpec,
 	newHttpLog,
 	sendWithRedirects,
 	type HttpLog
-} from '$lib/oauth/transport';
-import { clientSecretKey, errorMessage, passwordKey } from '$lib/state/secrets';
+} from '#lib/oauth/transport.js';
+import { clientSecretKey, errorMessage, passwordKey } from '#lib/state/secrets.js';
 
 export interface RunContext {
 	ipc: IpcApi;

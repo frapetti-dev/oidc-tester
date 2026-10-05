@@ -1,9 +1,9 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
-	import { newFlow, newIdp } from '$lib/model/schema';
-	import { createMemoryIpc } from '$lib/testing/memoryIpc';
-	import { WorkspaceStore } from '$lib/state/workspace.svelte';
+	import { newFlow, newIdp } from '#lib/model/schema.js';
+	import { createMemoryIpc } from '#lib/testing/memoryIpc.js';
+	import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
 	import FlowForm from './FlowForm.svelte';
 
 	const ipc = createMemoryIpc();

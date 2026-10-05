@@ -1,4 +1,4 @@
-import type { MenuEntry, Point } from '$lib/components/ui/menu';
+import type { MenuEntry, Point } from '#lib/components/ui/menu.js';
 
 export interface OpenMenu {
 	at: Point;

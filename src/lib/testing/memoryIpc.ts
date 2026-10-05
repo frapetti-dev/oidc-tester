@@ -5,7 +5,7 @@ import type {
 	HttpRequestSpec,
 	HttpResult,
 	IpcApi
-} from '$lib/ipc/types';
+} from '#lib/ipc/types.js';
 
 export interface MemoryIpc extends IpcApi {
 	docs: Map<string, unknown>;

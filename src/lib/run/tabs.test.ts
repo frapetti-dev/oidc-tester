@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Run } from '$lib/model/run';
+import type { Run } from '#lib/model/run.js';
 import { tabForRun } from './tabs';
 
 function run(status: Run['status'], error?: Run['error']): Pick<Run, 'status' | 'error'> {

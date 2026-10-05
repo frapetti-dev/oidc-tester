@@ -32,7 +32,7 @@ On Windows, cargo lives in `%USERPROFILE%\.cargo\bin`; add it to PATH if a shell
 - E2E isolation: `OIDCT_DATA_DIR` (REQ-STORE-004) overrides the app data root; native specs launch the debug exe with a temp dir plus `WEBVIEW2_USER_DATA_FOLDER` and a per-launch CDP port, so the real profile and keychain stay untouched. `pnpm test:e2e:native` builds the exe first (`native-build` project); set `E2E_SKIP_BUILD=1` to reuse a fresh `src-tauri/target/debug/oidc-tester.exe`. Web e2e serves `vite dev` on port 15174 with `VITE_E2E=1` (`src/lib/ipc/e2e.ts` forwards IPC to Node).
 - reqwest uses `rustls-no-provider` + the ring provider (aws-lc needs NASM), compression features off.
 - `response_mode=form_post` is not offered (navigation hook sees URLs only). Offered: `query`, `fragment`, default (omit).
-- SPA via adapter-static (`fallback: 'index.html'`), `src/routes/+layout.ts`: `ssr = false`, `prerender = false`. Do not use `base`/`assets`/`resolveRoute` from `$app/paths`.
+- SPA via adapter-static (`fallback: 'index.html'`), `src/routes/+layout.ts`: `ssr = false`, `prerender = false`. Import library code via `#lib/...` (package.json `imports`) with explicit extensions (`.svelte`, `.svelte.js`, `.js`); `$lib` no longer exists (SvelteKit 3).
 - Svelte state: classes with runes in `src/lib/state/*.svelte.ts`; no stores. Persisted data validated with `zod` (`src/lib/model/schema.ts`, `schemaVersion: 1`). JWT/crypto via `jose` + WebCrypto.
 - Frontend calls Rust only through `src/lib/ipc/commands.ts` (types in `src/lib/ipc/types.ts`), never `invoke` directly.
 

@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect } from 'storybook/test';
-	import type { KV } from '$lib/model/schema';
+	import type { KV } from '#lib/model/schema.js';
 	import KeyValueEditor from './KeyValueEditor.svelte';
 
 	const { Story } = defineMeta({

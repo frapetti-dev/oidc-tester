@@ -6,8 +6,8 @@ import type {
 	HttpRequestSpec,
 	HttpResult,
 	IpcApi
-} from '$lib/ipc/types';
-import { newFlow, newIdp, type Flow, type Idp } from '$lib/model/schema';
+} from '#lib/ipc/types.js';
+import { newFlow, newIdp, type Flow, type Idp } from '#lib/model/schema.js';
 import { newHttpLog } from './transport';
 import { buildTokenRequest, requestTokens, type Grant } from './tokenRequest';
 

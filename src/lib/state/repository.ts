@@ -1,5 +1,5 @@
-import type { IpcApi } from '$lib/ipc/types';
-import { RunSchema, type Run } from '$lib/model/run';
+import type { IpcApi } from '#lib/ipc/types.js';
+import { RunSchema, type Run } from '#lib/model/run.js';
 import {
 	SCRATCHPAD_ID,
 	WorkspaceSchema,
@@ -8,7 +8,7 @@ import {
 	newWorkspace,
 	secretKeys,
 	type Workspace
-} from '$lib/model/schema';
+} from '#lib/model/schema.js';
 import {
 	EXPORT_FORMAT,
 	EXPORT_VERSION,
@@ -17,7 +17,7 @@ import {
 	withFreshIds,
 	withoutSecretFlags,
 	type WorkspaceFile
-} from '$lib/model/workspaceFile';
+} from '#lib/model/workspaceFile.js';
 import { errorMessage } from './secrets';
 
 const WORKSPACES_DIR = 'workspaces';

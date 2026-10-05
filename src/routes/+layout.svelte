@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import { themeController } from '$lib/theme/theme';
+	import favicon from '#lib/assets/favicon.svg';
+	import { themeController } from '#lib/theme/theme.js';
 
 	let { children } = $props();
 

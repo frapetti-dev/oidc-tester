@@ -1,8 +1,8 @@
-import type { IpcApi } from '$lib/ipc/types';
-import type { RunError, Run } from '$lib/model/run';
-import type { Flow, Idp } from '$lib/model/schema';
-import type { DeviceUserCode } from '$lib/oauth/device';
-import type { callUserInfo, executeRun, RunContext } from '$lib/run/engine';
+import type { IpcApi } from '#lib/ipc/types.js';
+import type { RunError, Run } from '#lib/model/run.js';
+import type { Flow, Idp } from '#lib/model/schema.js';
+import type { DeviceUserCode } from '#lib/oauth/device.js';
+import type { callUserInfo, executeRun, RunContext } from '#lib/run/engine.js';
 import type { WorkspaceRepository } from './repository';
 
 export interface RunnerDeps {

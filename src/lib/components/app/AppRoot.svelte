@@ -1,36 +1,36 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import pkg from '../../../../package.json';
-	import FlowForm from '$lib/components/editors/FlowForm.svelte';
-	import IdpForm, { type DiscoveryOutcome } from '$lib/components/editors/IdpForm.svelte';
-	import ErrorsPanel from '$lib/components/results/ErrorsPanel.svelte';
-	import TokensPanel from '$lib/components/results/TokensPanel.svelte';
-	import Drawer from '$lib/components/shell/Drawer.svelte';
-	import FlowEditor from '$lib/components/shell/FlowEditor.svelte';
-	import ResultsPanel from '$lib/components/shell/ResultsPanel.svelte';
-	import Sidebar from '$lib/components/shell/Sidebar.svelte';
-	import TitleBar from '$lib/components/shell/TitleBar.svelte';
-	import type { SidebarFlow, SidebarIdp } from '$lib/components/shell/types';
-	import TimelinePanel from '$lib/components/timeline/TimelinePanel.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import ContextMenuHost from '$lib/components/ui/ContextMenuHost.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import type { MenuEntry } from '$lib/components/ui/menu';
-	import SplitPane from '$lib/components/ui/SplitPane.svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import type { IpcApi } from '$lib/ipc/types';
+	import FlowForm from '#lib/components/editors/FlowForm.svelte';
+	import IdpForm, { type DiscoveryOutcome } from '#lib/components/editors/IdpForm.svelte';
+	import ErrorsPanel from '#lib/components/results/ErrorsPanel.svelte';
+	import TokensPanel from '#lib/components/results/TokensPanel.svelte';
+	import Drawer from '#lib/components/shell/Drawer.svelte';
+	import FlowEditor from '#lib/components/shell/FlowEditor.svelte';
+	import ResultsPanel from '#lib/components/shell/ResultsPanel.svelte';
+	import Sidebar from '#lib/components/shell/Sidebar.svelte';
+	import TitleBar from '#lib/components/shell/TitleBar.svelte';
+	import type { SidebarFlow, SidebarIdp } from '#lib/components/shell/types.js';
+	import TimelinePanel from '#lib/components/timeline/TimelinePanel.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import ContextMenuHost from '#lib/components/ui/ContextMenuHost.svelte';
+	import Dialog from '#lib/components/ui/Dialog.svelte';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
+	import SplitPane from '#lib/components/ui/SplitPane.svelte';
+	import Tabs from '#lib/components/ui/Tabs.svelte';
+	import type { IpcApi } from '#lib/ipc/types.js';
 	import {
 		FLOW_TYPE_LABELS,
 		SCRATCHPAD_ID,
 		type Flow,
 		type FlowType,
 		type Idp
-	} from '$lib/model/schema';
-	import { callUserInfo, executeRun } from '$lib/run/engine';
-	import { tabForRun } from '$lib/run/tabs';
-	import { errorMessage } from '$lib/state/secrets';
-	import { RunnerStore } from '$lib/state/runner.svelte';
-	import { WorkspaceStore } from '$lib/state/workspace.svelte';
+	} from '#lib/model/schema.js';
+	import { callUserInfo, executeRun } from '#lib/run/engine.js';
+	import { tabForRun } from '#lib/run/tabs.js';
+	import { errorMessage } from '#lib/state/secrets.js';
+	import { RunnerStore } from '#lib/state/runner.svelte.js';
+	import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
 	import { layoutMode } from './layout';
 
 	interface Props {

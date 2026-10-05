@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { RunError, Validation } from '$lib/model/run';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CodeView from '$lib/components/ui/CodeView.svelte';
+	import type { RunError, Validation } from '#lib/model/run.js';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CodeView from '#lib/components/ui/CodeView.svelte';
 	import { hintForError } from './errorHints';
 	import ValidationList from './ValidationList.svelte';
 

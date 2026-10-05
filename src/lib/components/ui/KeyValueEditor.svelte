@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { KV } from '$lib/model/schema';
+	import type { KV } from '#lib/model/schema.js';
 	import Button from './Button.svelte';
 
 	interface Props {

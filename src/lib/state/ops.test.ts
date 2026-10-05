@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { newFlow, newIdp, newWorkspace } from '$lib/model/schema';
+import { newFlow, newIdp, newWorkspace } from '#lib/model/schema.js';
 import { createDebouncedSaver } from './autosave';
 import { addFlow, addIdp, deleteFlow, deleteIdp, duplicateFlow, duplicateIdp } from './ops';
 

@@ -1,4 +1,4 @@
-import type { FlowType } from '$lib/model/schema';
+import type { FlowType } from '#lib/model/schema.js';
 
 export interface WorkspaceSummary {
 	id: string;

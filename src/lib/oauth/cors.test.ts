@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Header, HttpRequestSpec } from '$lib/ipc/types';
-import { newIdp } from '$lib/model/schema';
+import type { Header, HttpRequestSpec } from '#lib/ipc/types.js';
+import { newIdp } from '#lib/model/schema.js';
 import {
 	buildPreflightSpec,
 	corsValidation,

@@ -1,10 +1,10 @@
 import { page, userEvent } from 'vitest/browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { HttpExchange, HttpRequestSpec, HttpResult } from '$lib/ipc/types';
-import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '$lib/state/sections.svelte';
-import { contextMenu } from '$lib/state/contextMenu.svelte';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
+import type { HttpExchange, HttpRequestSpec, HttpResult } from '#lib/ipc/types.js';
+import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '#lib/state/sections.svelte.js';
+import { contextMenu } from '#lib/state/contextMenu.svelte.js';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
 import '../../../app.css';
 import AppRoot from './AppRoot.svelte';
 
@@ -55,7 +55,7 @@ afterEach(async () => {
 describe('app', () => {
 	it('REQ-UI-001 shows Sidebar, FlowEditor and a ResultsPanel with Tokens/Errors/Timeline tabs in three resizable panes', async () => {
 		ipc = createMemoryIpc();
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 
 		await expect.element(page.getByRole('complementary', { name: 'Sidebar' })).toBeVisible();
 		await expect.element(page.getByRole('main', { name: 'Flow editor' })).toBeVisible();
@@ -74,7 +74,7 @@ describe('app', () => {
 		ipc = createMemoryIpc();
 		ipc.onHttpSend = async (spec) =>
 			reply(spec, 200, { access_token: 'opaque-access-token', token_type: 'Bearer' });
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 
 		await addFlow('client_credentials');
@@ -93,7 +93,7 @@ describe('app', () => {
 			fail
 				? reply(spec, 400, { error: 'invalid_client', error_description: 'bad credentials' })
 				: reply(spec, 200, { access_token: 'opaque-access-token', token_type: 'Bearer' });
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 
 		await addFlow('client_credentials');
@@ -114,7 +114,7 @@ describe('app', () => {
 		ipc = createMemoryIpc();
 		ipc.onHttpSend = async (spec) =>
 			reply(spec, 200, { access_token: 'opaque-access-token', token_type: 'Bearer' });
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 		const indicator = page.getByTestId('run-indicator');
 		await expect.element(indicator).toHaveAttribute('data-state', 'idle');
@@ -128,7 +128,7 @@ describe('app', () => {
 	it('REQ-UI-006 medium width stacks results under the editor', async () => {
 		ipc = createMemoryIpc();
 		await page.viewport(1000, 700);
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('complementary', { name: 'Sidebar' })).toBeVisible();
 		const separators = page.getByRole('separator').elements();
 		expect(separators).toHaveLength(2);
@@ -141,7 +141,7 @@ describe('app', () => {
 	it('REQ-UI-006 narrow width moves the sidebar into a drawer', async () => {
 		ipc = createMemoryIpc();
 		await page.viewport(800, 600);
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('main', { name: 'Flow editor' })).toBeVisible();
 		expect(page.getByRole('complementary', { name: 'Sidebar' }).query()).toBeNull();
 
@@ -163,7 +163,7 @@ describe('app', () => {
 
 	it('REQ-UI-011 IdP menu renames and adds flows', async () => {
 		ipc = createMemoryIpc();
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 		await page.getByRole('button', { name: 'Add IdP' }).click();
 
@@ -189,7 +189,7 @@ describe('app', () => {
 	it('REQ-UI-015 Run stays in view while the flow form scrolls', async () => {
 		ipc = createMemoryIpc();
 		await page.viewport(1280, 420);
-		render(AppRoot, { ipc });
+		await render(AppRoot, { ipc });
 		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 		await addFlow('authorization_code_pkce');
 

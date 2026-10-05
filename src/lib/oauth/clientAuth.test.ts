@@ -1,7 +1,7 @@
 import { decodeProtectedHeader, jwtVerify } from 'jose';
 import { describe, expect, it } from 'vitest';
-import type { Header } from '$lib/ipc/types';
-import { newIdp, type Idp } from '$lib/model/schema';
+import type { Header } from '#lib/ipc/types.js';
+import { newIdp, type Idp } from '#lib/model/schema.js';
 import { applyClientAuth } from './clientAuth';
 
 type Client = Idp['client'];

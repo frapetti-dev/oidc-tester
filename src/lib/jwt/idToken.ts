@@ -1,5 +1,5 @@
 import { base64url } from 'jose';
-import type { Validation } from '$lib/model/run';
+import type { Validation } from '#lib/model/run.js';
 
 export interface IdTokenContext {
 	/** IdP issuer the token must come from. */

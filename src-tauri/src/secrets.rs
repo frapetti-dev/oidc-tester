@@ -1,13 +1,25 @@
 use crate::error::AppError;
-use keyring::Entry;
+use keyring_core::{Entry, Error as KeyringError};
+use std::sync::LazyLock;
 
 /// Keychain service name; keys are `idp:<idpId>:client_secret` and `flow:<flowId>:password`.
 pub const SERVICE: &str = "dev.oidctester.app";
+
+/// Registers the Windows Credential Manager as keyring-core's default store, once per process.
+fn ensure_store() -> Result<(), AppError> {
+    static STORE: LazyLock<Result<(), String>> = LazyLock::new(|| {
+        let store = windows_native_keyring_store::Store::new().map_err(|e| e.to_string())?;
+        keyring_core::set_default_store(store);
+        Ok(())
+    });
+    STORE.clone().map_err(AppError::message)
+}
 
 fn entry(key: &str) -> Result<Entry, AppError> {
     if key.trim().is_empty() {
         return Err(AppError::message("secret key must not be empty"));
     }
+    ensure_store()?;
     Entry::new(SERVICE, key).map_err(|e| AppError::message(e.to_string()))
 }
 
@@ -21,7 +33,7 @@ pub fn set(key: &str, value: &str) -> Result<(), AppError> {
 pub fn get(key: &str) -> Result<Option<String>, AppError> {
     match entry(key)?.get_password() {
         Ok(value) => Ok(Some(value)),
-        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(KeyringError::NoEntry) => Ok(None),
         Err(e) => Err(AppError::message(e.to_string())),
     }
 }
@@ -29,7 +41,7 @@ pub fn get(key: &str) -> Result<Option<String>, AppError> {
 /// Deleting a missing entry succeeds.
 pub fn delete(key: &str) -> Result<(), AppError> {
     match entry(key)?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
         Err(e) => Err(AppError::message(e.to_string())),
     }
 }

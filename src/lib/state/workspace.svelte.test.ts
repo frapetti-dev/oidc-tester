@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
 import { WorkspaceStore } from './workspace.svelte';
 
 let ipc: MemoryIpc;

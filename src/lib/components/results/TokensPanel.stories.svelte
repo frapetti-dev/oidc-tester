@@ -1,8 +1,8 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
-	import { newFlow, newIdp } from '$lib/model/schema';
-	import type { Run } from '$lib/model/run';
+	import { newFlow, newIdp } from '#lib/model/schema.js';
+	import type { Run } from '#lib/model/run.js';
 	import TokensPanel from './TokensPanel.svelte';
 
 	function encode(value: unknown): string {

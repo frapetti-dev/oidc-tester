@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Header } from '$lib/ipc/types';
+	import type { Header } from '#lib/ipc/types.js';
 	import { formatBody } from './entries';
 
 	interface Props {

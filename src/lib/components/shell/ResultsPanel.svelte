@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
+	import Tabs from '#lib/components/ui/Tabs.svelte';
 
 	interface Props {
 		/** Selected tab id: `tokens`, `errors` or `timeline`. */

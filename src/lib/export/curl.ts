@@ -1,4 +1,4 @@
-import type { HttpExchange, ProxyMode } from '$lib/ipc/types';
+import type { HttpExchange, ProxyMode } from '#lib/ipc/types.js';
 
 export interface CurlSettings {
 	tlsInsecure: boolean;

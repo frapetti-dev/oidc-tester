@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { HttpExchange } from '$lib/ipc/types';
-import type { Run } from '$lib/model/run';
+import type { HttpExchange } from '#lib/ipc/types.js';
+import type { Run } from '#lib/model/run.js';
 import { buildTimeline, filterEntries, formatBody } from './entries';
 
 function exchange(id: string, startedAt: string): HttpExchange {

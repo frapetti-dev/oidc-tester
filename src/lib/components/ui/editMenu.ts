@@ -1,4 +1,4 @@
-import { contextMenu } from '$lib/state/contextMenu.svelte';
+import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 import type { MenuEntry } from './menu';
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement;

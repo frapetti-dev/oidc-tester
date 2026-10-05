@@ -1,5 +1,5 @@
-import type { Header, HttpExchange, NavigationRecord } from '$lib/ipc/types';
-import type { Run } from '$lib/model/run';
+import type { Header, HttpExchange, NavigationRecord } from '#lib/ipc/types.js';
+import type { Run } from '#lib/model/run.js';
 
 export interface HarNameValue {
 	name: string;

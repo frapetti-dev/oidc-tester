@@ -5,8 +5,8 @@ import type {
 	HttpRequestSpec,
 	HttpResult,
 	IpcApi
-} from '$lib/ipc/types';
-import { newFlow, newIdp } from '$lib/model/schema';
+} from '#lib/ipc/types.js';
+import { newFlow, newIdp } from '#lib/model/schema.js';
 import { buildRequestSpec, mergeHeaders, newHttpLog, sendWithRedirects } from './transport';
 
 function exchange(spec: HttpRequestSpec, status: number, headers: [string, string][] = []) {

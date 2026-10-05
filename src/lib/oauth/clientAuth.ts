@@ -1,7 +1,7 @@
 import { SignJWT } from 'jose';
-import type { Header } from '$lib/ipc/types';
-import type { Idp } from '$lib/model/schema';
-import type { RunError } from '$lib/model/run';
+import type { Header } from '#lib/ipc/types.js';
+import type { Idp } from '#lib/model/schema.js';
+import type { RunError } from '#lib/model/run.js';
 
 export type Param = [name: string, value: string];
 

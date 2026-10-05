@@ -2,7 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
 	import TokenView from './TokenView.svelte';
-	import ContextMenuHost from '$lib/components/ui/ContextMenuHost.svelte';
+	import ContextMenuHost from '#lib/components/ui/ContextMenuHost.svelte';
 
 	const NOW_SECONDS = 1_700_000_000;
 	const NOW = NOW_SECONDS * 1000;

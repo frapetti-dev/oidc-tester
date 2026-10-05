@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { Run } from '$lib/model/run';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CodeView from '$lib/components/ui/CodeView.svelte';
+	import type { Run } from '#lib/model/run.js';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CodeView from '#lib/components/ui/CodeView.svelte';
 	import TokenView from './TokenView.svelte';
 
 	interface Props {

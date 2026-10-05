@@ -1,9 +1,9 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { Run } from '$lib/model/run';
-import { newFlow, newIdp, type Flow, type FlowType, type Idp, type KV } from '$lib/model/schema';
-import { executeRun, callUserInfo, type RunContext } from '$lib/run/engine';
-import { clientSecretKey, passwordKey } from '$lib/state/secrets';
+import type { Run } from '#lib/model/run.js';
+import { newFlow, newIdp, type Flow, type FlowType, type Idp, type KV } from '#lib/model/schema.js';
+import { executeRun, callUserInfo, type RunContext } from '#lib/run/engine.js';
+import { clientSecretKey, passwordKey } from '#lib/state/secrets.js';
 import { startMockIdp, type MockIdp } from '../mock-idp/server.ts';
 import { createNodeIpc, type NodeIpc } from '../support/nodeIpc.ts';
 

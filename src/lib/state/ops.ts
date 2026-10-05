@@ -6,7 +6,7 @@ import {
 	type FlowType,
 	type Idp,
 	type Workspace
-} from '$lib/model/schema';
+} from '#lib/model/schema.js';
 import { clientSecretKey, passwordKey } from './secrets';
 
 export interface SecretCopy {

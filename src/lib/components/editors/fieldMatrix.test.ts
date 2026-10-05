@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLOW_TYPES, type FlowType } from '$lib/model/schema';
+import { FLOW_TYPES, type FlowType } from '#lib/model/schema.js';
 import { FIELD_IDS, visibleFields, type FieldId } from './fieldMatrix';
 
 const shown = (type: FlowType): FieldId[] => FIELD_IDS.filter((id) => visibleFields(type)[id]);

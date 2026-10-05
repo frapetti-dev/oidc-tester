@@ -1,12 +1,12 @@
 import { page } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { Flow, FlowType, Idp } from '$lib/model/schema';
-import type { Run } from '$lib/model/run';
-import type { DeviceUserCode } from '$lib/oauth/device';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
-import { WorkspaceStore } from '$lib/state/workspace.svelte';
-import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '$lib/state/sections.svelte';
+import type { Flow, FlowType, Idp } from '#lib/model/schema.js';
+import type { Run } from '#lib/model/run.js';
+import type { DeviceUserCode } from '#lib/oauth/device.js';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
+import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
+import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '#lib/state/sections.svelte.js';
 import '../../../app.css';
 import FlowForm from './FlowForm.svelte';
 
@@ -36,10 +36,10 @@ interface Overrides {
 	oncancel?: () => void;
 }
 
-function mount(type: FlowType, over: Overrides = {}): Flow {
+async function mount(type: FlowType, over: Overrides = {}): Promise<Flow> {
 	const added = store.addFlow(idp.id, type)!;
 	const flow = idp.flows.find((f) => f.id === added.id)!;
-	render(FlowForm, {
+	await render(FlowForm, {
 		idp,
 		flow,
 		store,
@@ -76,7 +76,7 @@ function runWith(flow: Flow, refresh: string | undefined, id: string): Run {
 
 describe('FlowForm', () => {
 	it('REQ-FLOW-013 client_credentials shows only its matrix fields plus headers', async () => {
-		mount('client_credentials');
+		await mount('client_credentials');
 		await expect.element(page.getByLabelText('Audience')).toBeVisible();
 		await expect.element(page.getByLabelText('Resource')).toBeVisible();
 		await expect.element(page.getByText('Extra token params')).toBeVisible();
@@ -87,7 +87,7 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-FLOW-013 password shows username and a secret field wired to the keychain', async () => {
-		const flow = mount('password');
+		const flow = await mount('password');
 		await expect.element(page.getByLabelText('Username')).toBeVisible();
 		await page.getByLabelText('Password').fill('hunter2');
 		await page.getByLabelText('Username').click();
@@ -98,25 +98,25 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-FLOW-013 PKCE method and verifier only for authorization_code_pkce', async () => {
-		mount('authorization_code_pkce');
+		await mount('authorization_code_pkce');
 		await expect.element(page.getByLabelText('PKCE method')).toBeVisible();
 		await expect.element(page.getByLabelText('Code verifier')).toBeVisible();
 	});
 
 	it('REQ-FLOW-013 plain authorization_code hides PKCE fields', async () => {
-		mount('authorization_code');
+		await mount('authorization_code');
 		await expect.element(page.getByLabelText('Redirect URI')).toBeVisible();
 		expect(page.getByLabelText('PKCE method').query()).toBeNull();
 		expect(page.getByLabelText('Code verifier').query()).toBeNull();
 	});
 
 	it('REQ-CAP-006 warns for a custom-scheme redirect URI and not for http(s)', async () => {
-		mount('authorization_code');
+		await mount('authorization_code');
 		const field = page.getByLabelText('Redirect URI');
 		await field.fill('myapp://cb');
 		await expect
 			.element(page.getByRole('alert'))
-			.toHaveTextContent(
+			.toMatchTextContent(
 				'Custom-scheme redirect URIs may not be capturable on this platform; use http(s).'
 			);
 		await field.fill('https://spoofed.invalid/cb');
@@ -124,10 +124,10 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-AUTHZ-008 preview follows edits and Copy puts it on the clipboard', async () => {
-		mount('authorization_code');
-		await expect.element(preview()).toHaveTextContent('client_id=my-client');
+		await mount('authorization_code');
+		await expect.element(preview()).toMatchTextContent('client_id=my-client');
 		await page.getByLabelText('Scope').fill('openid custom');
-		await expect.element(preview()).toHaveTextContent(/scope=openid(\+|%20)custom/);
+		await expect.element(preview()).toMatchTextContent(/scope=openid(\+|%20)custom/);
 
 		const written: string[] = [];
 		vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(async (text) => {
@@ -140,7 +140,7 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-PKCE-004 Regenerate replaces the verifier and the preview code_challenge', async () => {
-		mount('authorization_code_pkce');
+		await mount('authorization_code_pkce');
 		const verifier = page.getByLabelText('Code verifier');
 		await vi.waitFor(() => expect((verifier.element() as HTMLInputElement).value).toHaveLength(64));
 		const before = (verifier.element() as HTMLInputElement).value;
@@ -160,11 +160,11 @@ describe('FlowForm', () => {
 
 	it('REQ-DISC-005 lists a warning naming an unsupported grant type', async () => {
 		idp.discovery = { grant_types_supported: ['client_credentials'] };
-		mount('authorization_code');
+		await mount('authorization_code');
 		await expect.element(page.getByText(/authorization_code/).first()).toBeVisible();
 		await expect
 			.element(page.getByRole('list', { name: 'Discovery warnings' }))
-			.toHaveTextContent('Grant type "authorization_code" is not listed');
+			.toMatchTextContent('Grant type "authorization_code" is not listed');
 	});
 
 	it('REQ-DISC-005 shows no warning when the lists contain the value', async () => {
@@ -172,7 +172,7 @@ describe('FlowForm', () => {
 			grant_types_supported: ['authorization_code'],
 			response_types_supported: ['code']
 		};
-		mount('authorization_code');
+		await mount('authorization_code');
 		await expect.element(page.getByLabelText('Redirect URI')).toBeVisible();
 		expect(page.getByRole('list', { name: 'Discovery warnings' }).query()).toBeNull();
 	});
@@ -181,7 +181,7 @@ describe('FlowForm', () => {
 		const added = store.addFlow(idp.id, 'refresh_token')!;
 		const flow = idp.flows.find((f) => f.id === added.id)!;
 		const runs = [runWith(flow, 'rt-abc', 'r1'), runWith(flow, undefined, 'r2')];
-		render(FlowForm, {
+		await render(FlowForm, {
 			idp,
 			flow,
 			store,
@@ -201,14 +201,14 @@ describe('FlowForm', () => {
 
 	it('run bar: Run is disabled while running and Cancel appears', async () => {
 		const oncancel = vi.fn();
-		mount('client_credentials', { running: true, oncancel });
+		await mount('client_credentials', { running: true, oncancel });
 		await expect.element(page.getByRole('button', { name: /Running/ })).toBeDisabled();
 		await page.getByRole('button', { name: 'Cancel' }).click();
 		expect(oncancel).toHaveBeenCalledOnce();
 	});
 
 	it('REQ-UI-014 flow sections: Advanced is collapsed by default, omitted when empty, and counts set fields', async () => {
-		mount('client_credentials');
+		await mount('client_credentials');
 		expect(page.getByRole('button', { name: 'Advanced', exact: true }).query()).toBeNull();
 		for (const title of ['Request', 'Extra parameters & headers']) {
 			await expect
@@ -218,7 +218,7 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-UI-014 Advanced holds the optional authorize params and persists being opened', async () => {
-		const flow = mount('authorization_code');
+		const flow = await mount('authorization_code');
 		flow.params.prompt = 'login';
 		const advanced = page.getByRole('button', { name: 'Advanced', exact: true });
 		await expect.element(advanced).toHaveAttribute('aria-expanded', 'false');
@@ -231,7 +231,7 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-UI-015 the action bar keeps Run and the authorize preview together', async () => {
-		mount('authorization_code');
+		await mount('authorization_code');
 		const run = page.getByRole('button', { name: 'Run', exact: true }).element();
 		const bar = run.parentElement!;
 		expect(getComputedStyle(bar).position).toBe('sticky');
@@ -244,7 +244,7 @@ describe('FlowForm', () => {
 	});
 
 	it('run bar: shows the device user code, opens the verification URI and counts down', async () => {
-		mount('device_code', {
+		await mount('device_code', {
 			deviceCode: {
 				userCode: 'WDJB-MJHT',
 				verificationUri: 'https://idp.example/device',
@@ -252,7 +252,7 @@ describe('FlowForm', () => {
 				interval: 5
 			}
 		});
-		await expect.element(page.getByTestId('user-code')).toHaveTextContent('WDJB-MJHT');
+		await expect.element(page.getByTestId('user-code')).toMatchTextContent('WDJB-MJHT');
 		await expect.element(page.getByText(/Expires in 1[12]\ds/)).toBeVisible();
 		await page.getByRole('button', { name: 'https://idp.example/device' }).click();
 		expect(ipc.opened).toEqual(['https://idp.example/device']);

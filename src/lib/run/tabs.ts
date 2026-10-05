@@ -1,4 +1,4 @@
-import type { Run } from '$lib/model/run';
+import type { Run } from '#lib/model/run.js';
 
 export type ResultTab = 'tokens' | 'errors';
 

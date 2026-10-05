@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import type { Snippet } from 'svelte';
-	import { sectionMemory } from '$lib/state/sections.svelte';
+	import { sectionMemory } from '#lib/state/sections.svelte.js';
 
 	interface Props {
 		/** Stable key for the persisted open state, e.g. `idp.network`. */

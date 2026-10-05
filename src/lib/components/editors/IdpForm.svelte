@@ -1,25 +1,25 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import FormSection from '$lib/components/ui/FormSection.svelte';
-	import KeyValueEditor from '$lib/components/ui/KeyValueEditor.svelte';
-	import SecretField from '$lib/components/ui/SecretField.svelte';
-	import SelectField from '$lib/components/ui/SelectField.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import TlsInsecureToggle from '$lib/components/ui/TlsInsecureToggle.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import type { HttpExchange, IpcApi } from '$lib/ipc/types';
-	import type { RunError } from '$lib/model/run';
-	import type { ClientAuth, Endpoints, Idp } from '$lib/model/schema';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import FormSection from '#lib/components/ui/FormSection.svelte';
+	import KeyValueEditor from '#lib/components/ui/KeyValueEditor.svelte';
+	import SecretField from '#lib/components/ui/SecretField.svelte';
+	import SelectField from '#lib/components/ui/SelectField.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import TlsInsecureToggle from '#lib/components/ui/TlsInsecureToggle.svelte';
+	import Toggle from '#lib/components/ui/Toggle.svelte';
+	import type { HttpExchange, IpcApi } from '#lib/ipc/types.js';
+	import type { RunError } from '#lib/model/run.js';
+	import type { ClientAuth, Endpoints, Idp } from '#lib/model/schema.js';
 	import {
 		applyDiscovery,
 		discover,
 		discoverySuggestions,
 		type DiscoveryResult,
 		type DiscoverySuccess
-	} from '$lib/oauth/discovery';
-	import { newHttpLog } from '$lib/oauth/transport';
-	import type { WorkspaceStore } from '$lib/state/workspace.svelte';
+	} from '#lib/oauth/discovery.js';
+	import { newHttpLog } from '#lib/oauth/transport.js';
+	import type { WorkspaceStore } from '#lib/state/workspace.svelte.js';
 
 	export interface DiscoveryOutcome {
 		error: RunError | null;

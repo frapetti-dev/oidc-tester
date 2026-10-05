@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newFlow, newIdp, type Flow, type FlowType, type Idp } from '$lib/model/schema';
+import { newFlow, newIdp, type Flow, type FlowType, type Idp } from '#lib/model/schema.js';
 import { challenge } from './pkce';
 import {
 	buildAuthorizeUrl,

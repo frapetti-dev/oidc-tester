@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { Validation } from '$lib/model/run';
-	import { inspectToken, splitTokenSegments, type TokenSegment } from '$lib/jwt/decode';
-	import { describeClaim, formatClaimValue } from '$lib/jwt/claims';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import CodeView from '$lib/components/ui/CodeView.svelte';
-	import { menu } from '$lib/components/ui/contextMenu';
-	import type { MenuEntry } from '$lib/components/ui/menu';
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import type { Validation } from '#lib/model/run.js';
+	import { inspectToken, splitTokenSegments, type TokenSegment } from '#lib/jwt/decode.js';
+	import { describeClaim, formatClaimValue } from '#lib/jwt/claims.js';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import CodeView from '#lib/components/ui/CodeView.svelte';
+	import { menu } from '#lib/components/ui/contextMenu.js';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import ValidationList from './ValidationList.svelte';
 
 	interface Props {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RunError, Tokens } from '$lib/model/run';
+import type { RunError, Tokens } from '#lib/model/run.js';
 import type { SendResult } from './transport';
 
 const DETAIL_LIMIT = 2048;

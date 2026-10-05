@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { HttpExchange, IpcApi } from '$lib/ipc/types';
-	import type { Run } from '$lib/model/run';
-	import { toCurl } from '$lib/export/curl';
-	import { toHar } from '$lib/export/har';
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import { menu } from '$lib/components/ui/contextMenu';
-	import type { MenuEntry } from '$lib/components/ui/menu';
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import type { HttpExchange, IpcApi } from '#lib/ipc/types.js';
+	import type { Run } from '#lib/model/run.js';
+	import { toCurl } from '#lib/export/curl.js';
+	import { toHar } from '#lib/export/har.js';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import { menu } from '#lib/components/ui/contextMenu.js';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import ExchangeDetail from './ExchangeDetail.svelte';
 	import { buildTimeline, filterEntries, type TimelineEntry, type TimelineFilter } from './entries';
 

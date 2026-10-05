@@ -6,8 +6,8 @@ import type {
 	HttpRequestSpec,
 	HttpResult,
 	IpcApi
-} from '$lib/ipc/types';
-import { newFlow, newIdp, type Idp } from '$lib/model/schema';
+} from '#lib/ipc/types.js';
+import { newFlow, newIdp, type Idp } from '#lib/model/schema.js';
 import { runDeviceFlow, type DeviceUserCode } from './device';
 import { newHttpLog } from './transport';
 

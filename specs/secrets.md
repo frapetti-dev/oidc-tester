@@ -8,7 +8,7 @@ Status: Accepted
 
 Given a secret operation
 When it reaches the keychain
-Then it uses `keyring::Entry::new("dev.oidctester.app", key)` with keys `idp:<idpId>:client_secret` and `flow:<flowId>:password`
+Then it uses `keyring_core::Entry::new("dev.oidctester.app", key)` on the Windows Credential Manager store (`windows_native_keyring_store`, target name `<key>.dev.oidctester.app`) with keys `idp:<idpId>:client_secret` and `flow:<flowId>:password`
 And a missing entry gives `None` from get and success from delete
 
 ### REQ-SEC-002 Secrets never in JSON

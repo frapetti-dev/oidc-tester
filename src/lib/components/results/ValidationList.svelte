@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Validation } from '$lib/model/run';
-	import Badge from '$lib/components/ui/Badge.svelte';
+	import type { Validation } from '#lib/model/run.js';
+	import Badge from '#lib/components/ui/Badge.svelte';
 
 	let { validations }: { validations: Validation[] } = $props();
 

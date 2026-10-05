@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Run } from '$lib/model/run';
-import { newFlow, newIdp } from '$lib/model/schema';
+import type { Run } from '#lib/model/run.js';
+import { newFlow, newIdp } from '#lib/model/schema.js';
 import { toHar } from './har';
 
 function makeRun(): Run {

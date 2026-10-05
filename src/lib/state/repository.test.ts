@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
-import { newFlow, newIdp, newWorkspace, SCRATCHPAD_ID, type Workspace } from '$lib/model/schema';
-import type { Run } from '$lib/model/run';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
+import { newFlow, newIdp, newWorkspace, SCRATCHPAD_ID, type Workspace } from '#lib/model/schema.js';
+import type { Run } from '#lib/model/run.js';
 import { WorkspaceRepository } from './repository';
 import { clearSecret, clientSecretKey, passwordKey, storeSecret } from './secrets';
 

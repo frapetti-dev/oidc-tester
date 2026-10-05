@@ -2,7 +2,7 @@
 	import Monitor from '@lucide/svelte/icons/monitor';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
-	import { THEME_MODES, themeController, type ThemeMode } from '$lib/theme/theme';
+	import { THEME_MODES, themeController, type ThemeMode } from '#lib/theme/theme.js';
 
 	const LABELS: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 	const ICONS: Record<ThemeMode, typeof Monitor> = { system: Monitor, light: Sun, dark: Moon };

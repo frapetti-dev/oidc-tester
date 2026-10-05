@@ -1,29 +1,29 @@
 <script lang="ts">
-	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import KeyValueEditor from '$lib/components/ui/KeyValueEditor.svelte';
-	import SecretField from '$lib/components/ui/SecretField.svelte';
-	import SelectField from '$lib/components/ui/SelectField.svelte';
-	import TextField from '$lib/components/ui/TextField.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import FormSection from '$lib/components/ui/FormSection.svelte';
-	import { menu } from '$lib/components/ui/contextMenu';
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
-	import type { IpcApi } from '$lib/ipc/types';
-	import { FLOW_TYPE_LABELS, type Flow, type Idp } from '$lib/model/schema';
-	import type { Run } from '$lib/model/run';
+	import Badge from '#lib/components/ui/Badge.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import KeyValueEditor from '#lib/components/ui/KeyValueEditor.svelte';
+	import SecretField from '#lib/components/ui/SecretField.svelte';
+	import SelectField from '#lib/components/ui/SelectField.svelte';
+	import TextField from '#lib/components/ui/TextField.svelte';
+	import Toggle from '#lib/components/ui/Toggle.svelte';
+	import FormSection from '#lib/components/ui/FormSection.svelte';
+	import { menu } from '#lib/components/ui/contextMenu.js';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
+	import type { IpcApi } from '#lib/ipc/types.js';
+	import { FLOW_TYPE_LABELS, type Flow, type Idp } from '#lib/model/schema.js';
+	import type { Run } from '#lib/model/run.js';
 	import {
 		RESPONSE_MODE_OPTIONS,
 		usesPkce,
 		isFrontChannel,
 		previewAuthorizeUrl,
 		type AuthorizeValues
-	} from '$lib/oauth/authorize';
-	import type { DeviceUserCode } from '$lib/oauth/device';
-	import { discoverySuggestions, unsupportedWarnings } from '$lib/oauth/discovery';
-	import { generateVerifier } from '$lib/oauth/pkce';
-	import { redirectUriWarning } from '$lib/oauth/redirect';
-	import type { WorkspaceStore } from '$lib/state/workspace.svelte';
+	} from '#lib/oauth/authorize.js';
+	import type { DeviceUserCode } from '#lib/oauth/device.js';
+	import { discoverySuggestions, unsupportedWarnings } from '#lib/oauth/discovery.js';
+	import { generateVerifier } from '#lib/oauth/pkce.js';
+	import { redirectUriWarning } from '#lib/oauth/redirect.js';
+	import type { WorkspaceStore } from '#lib/state/workspace.svelte.js';
 	import { visibleFields } from './fieldMatrix';
 
 	interface Props {

@@ -1,4 +1,4 @@
-import type { IpcApi } from '$lib/ipc/types';
+import type { IpcApi } from '#lib/ipc/types.js';
 
 export const clientSecretKey = (idpId: string) => `idp:${idpId}:client_secret`;
 export const passwordKey = (flowId: string) => `flow:${flowId}:password`;

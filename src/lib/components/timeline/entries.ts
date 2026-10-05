@@ -1,5 +1,5 @@
-import type { Header, HttpExchange } from '$lib/ipc/types';
-import type { Run } from '$lib/model/run';
+import type { Header, HttpExchange } from '#lib/ipc/types.js';
+import type { Run } from '#lib/model/run.js';
 
 export type TimelineEntry =
 	{ type: 'nav'; at: string; url: string } | { type: 'http'; at: string; exchange: HttpExchange };

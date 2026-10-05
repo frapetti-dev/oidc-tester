@@ -1,5 +1,5 @@
-import type { Header, HttpExchange, HttpFailure, HttpRequestSpec, IpcApi } from '$lib/ipc/types';
-import type { Flow, Idp, KV } from '$lib/model/schema';
+import type { Header, HttpExchange, HttpFailure, HttpRequestSpec, IpcApi } from '#lib/ipc/types.js';
+import type { Flow, Idp, KV } from '#lib/model/schema.js';
 
 export const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);

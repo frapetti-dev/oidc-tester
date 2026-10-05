@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect } from 'storybook/test';
-	import { createMemoryIpc } from '$lib/testing/memoryIpc';
+	import { createMemoryIpc } from '#lib/testing/memoryIpc.js';
 	import TimelinePanel from './TimelinePanel.svelte';
 	import { sampleRun } from './fixtures';
 

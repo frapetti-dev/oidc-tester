@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
-	import type { MenuEntry } from '$lib/components/ui/menu';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
+	import ThemeToggle from '#lib/components/ui/ThemeToggle.svelte';
 	import type { RunIndicatorState, WorkspaceSummary } from './types';
 
 	interface Props {

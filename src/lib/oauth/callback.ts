@@ -1,4 +1,4 @@
-import type { CallbackResult, RunError } from '$lib/model/run';
+import type { CallbackResult, RunError } from '#lib/model/run.js';
 
 const NAMED_FIELDS = [
 	'code',

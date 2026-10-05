@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
-	import ContextMenuHost from '$lib/components/ui/ContextMenuHost.svelte';
+	import ContextMenuHost from '#lib/components/ui/ContextMenuHost.svelte';
 	import Sidebar from './Sidebar.svelte';
 
 	const MOCK_IDPS = [

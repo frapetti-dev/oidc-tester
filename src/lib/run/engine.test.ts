@@ -7,12 +7,12 @@ import type {
 	HttpExchange,
 	HttpRequestSpec,
 	HttpResult
-} from '$lib/ipc/types';
-import { RunSchema } from '$lib/model/run';
-import { newFlow, newIdp, type Flow, type FlowType, type Idp } from '$lib/model/schema';
-import { challenge } from '$lib/oauth/pkce';
-import { clientSecretKey, passwordKey } from '$lib/state/secrets';
-import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
+} from '#lib/ipc/types.js';
+import { RunSchema } from '#lib/model/run.js';
+import { newFlow, newIdp, type Flow, type FlowType, type Idp } from '#lib/model/schema.js';
+import { challenge } from '#lib/oauth/pkce.js';
+import { clientSecretKey, passwordKey } from '#lib/state/secrets.js';
+import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
 import { callUserInfo, executeRun, type RunContext } from './engine';
 
 const NOW = Date.parse('2026-01-01T12:00:00Z');

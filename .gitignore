@@ -31,3 +31,4 @@ storybook-static
 src-tauri/target
 src-tauri/gen
 playwright-report
+.vitest

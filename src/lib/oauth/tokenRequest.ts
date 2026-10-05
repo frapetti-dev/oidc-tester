@@ -1,6 +1,6 @@
-import type { Header, HttpRequestSpec, IpcApi } from '$lib/ipc/types';
-import type { RunError, Tokens, Validation } from '$lib/model/run';
-import type { Flow, Idp, KV } from '$lib/model/schema';
+import type { Header, HttpRequestSpec, IpcApi } from '#lib/ipc/types.js';
+import type { RunError, Tokens, Validation } from '#lib/model/run.js';
+import type { Flow, Idp, KV } from '#lib/model/schema.js';
 import { applyClientAuth, type Param } from './clientAuth';
 import {
 	buildPreflightSpec,

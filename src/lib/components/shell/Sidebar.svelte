@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import Plus from '@lucide/svelte/icons/plus';
-	import { menu } from '$lib/components/ui/contextMenu';
-	import type { MenuEntry } from '$lib/components/ui/menu';
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import { menu } from '#lib/components/ui/contextMenu.js';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import type { SidebarFlow, SidebarIdp } from './types';
 
 	interface Props {

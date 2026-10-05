@@ -14,7 +14,7 @@
 </script>
 
 <script lang="ts">
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import Button from './Button.svelte';
 	import { menu } from './contextMenu';
 

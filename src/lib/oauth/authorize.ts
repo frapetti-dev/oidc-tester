@@ -1,5 +1,5 @@
-import type { RunError } from '$lib/model/run';
-import type { Flow, FlowParams, Idp } from '$lib/model/schema';
+import type { RunError } from '#lib/model/run.js';
+import type { Flow, FlowParams, Idp } from '#lib/model/schema.js';
 import { challenge, generateVerifier, randomToken } from './pkce';
 
 /** Per-run random inputs of the authorize request; the engine keeps them to validate the response. */

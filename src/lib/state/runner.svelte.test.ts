@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Run } from '$lib/model/run';
-import { newFlow, newIdp, newId } from '$lib/model/schema';
-import type { RunContext } from '$lib/run/engine';
-import { createMemoryIpc } from '$lib/testing/memoryIpc';
+import type { Run } from '#lib/model/run.js';
+import { newFlow, newIdp, newId } from '#lib/model/schema.js';
+import type { RunContext } from '#lib/run/engine.js';
+import { createMemoryIpc } from '#lib/testing/memoryIpc.js';
 import { WorkspaceRepository } from './repository';
 import { RunnerStore } from './runner.svelte';
 

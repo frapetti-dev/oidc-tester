@@ -1,6 +1,6 @@
-import type { IpcApi } from '$lib/ipc/types';
-import type { RunError } from '$lib/model/run';
-import type { Endpoints, Flow, Idp } from '$lib/model/schema';
+import type { IpcApi } from '#lib/ipc/types.js';
+import type { RunError } from '#lib/model/run.js';
+import type { Endpoints, Flow, Idp } from '#lib/model/schema.js';
 import { effectiveResponseType, isFrontChannel } from './authorize';
 import { buildRequestSpec, sendWithRedirects, type HttpLog } from './transport';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import { editMenu, isEditableText } from './editMenu';
 	import Menu from './Menu.svelte';
 

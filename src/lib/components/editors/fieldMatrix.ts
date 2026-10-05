@@ -1,4 +1,4 @@
-import type { FlowType } from '$lib/model/schema';
+import type { FlowType } from '#lib/model/schema.js';
 
 export const FIELD_IDS = [
 	'redirectUri',

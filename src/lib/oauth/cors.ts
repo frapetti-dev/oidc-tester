@@ -1,6 +1,6 @@
-import type { Header, HttpRequestSpec } from '$lib/ipc/types';
-import type { Validation } from '$lib/model/run';
-import type { Idp } from '$lib/model/schema';
+import type { Header, HttpRequestSpec } from '#lib/ipc/types.js';
+import type { Validation } from '#lib/model/run.js';
+import type { Idp } from '#lib/model/schema.js';
 import { buildRequestSpec, headerValue } from './transport';
 
 export interface CorsResponse {

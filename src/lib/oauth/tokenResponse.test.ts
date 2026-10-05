@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { HttpExchange, HttpFailure, HttpFailureKind } from '$lib/ipc/types';
+import type { HttpExchange, HttpFailure, HttpFailureKind } from '#lib/ipc/types.js';
 import { parseTokenResponse } from './tokenResponse';
 
 function exchange(status: number, body: string, contentType = 'application/json'): HttpExchange {
