@@ -11,10 +11,10 @@
 	let { title, children }: Props = $props();
 </script>
 
-<main aria-label="Flow editor" class="flex h-full min-h-0 flex-col">
+<main aria-label="Flow editor" class="flex h-full min-h-0 flex-col bg-surface-raised">
 	{#if children}
 		{#if title}
-			<h1 class="shrink-0 border-b border-border px-4 py-2.5 text-lg font-semibold tracking-tight">
+			<h1 class="shrink-0 px-5 pt-4 pb-1 text-xl font-semibold tracking-tight">
 				{title}
 			</h1>
 		{/if}

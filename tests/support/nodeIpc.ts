@@ -523,6 +523,17 @@ export function createNodeIpc(options: NodeIpcOptions = {}): NodeIpc {
 			return answer(options.pickOpenPath, opts, null);
 		},
 
+		// The titlebar has no meaning without a real window; the Node host only satisfies the contract.
+		async windowMinimize() {},
+		async windowToggleMaximize() {},
+		async windowClose() {},
+		async windowIsMaximized() {
+			return false;
+		},
+		async onWindowResized() {
+			return () => {};
+		},
+
 		async dispose() {
 			for (const close of [...closers]) close();
 			await rm(tempDir, { recursive: true, force: true });

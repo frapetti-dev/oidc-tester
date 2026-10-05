@@ -21,6 +21,8 @@ All OAuth/OIDC logic is TypeScript in `src/lib/oauth`, `src/lib/jwt`, etc. Rust 
 
 `src-tauri/capabilities/default.json` lists `"windows": ["main"]` only. The `auth` popup loads untrusted remote pages and MUST have no IPC access. Never add `auth` (or wildcard windows) to a capability.
 
+The main window is frameless (`decorations: false`, min 720×520). The in-app `TitleBar` drives it through `IpcApi.window*` (minimize, toggle maximize, close, is-maximized, resize events). The matching `core:window:allow-*` permissions (minimize, toggle-maximize, internal-toggle-maximize, close, start-dragging) live in the same capability file. The `auth` popup keeps native decorations.
+
 ## Plugins
 
 Add official plugins with `pnpm tauri add <plugin>` (updates Cargo.toml, package.json, lib.rs, capability). Installed: opener, dialog. `tauri-plugin-mcp-bridge` 0.13 is NOT installed: it pins `webview2-com-sys` 0.38 and fails to compile against tauri 2.12.1 (wry 0.57 uses 0.39). Retry when a newer bridge release is published (register under `#[cfg(debug_assertions)]`, add `mcp-bridge:default` to the capability).

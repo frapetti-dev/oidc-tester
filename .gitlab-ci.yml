@@ -1,0 +1,2 @@
+include:
+  - component: $CI_SERVER_FQDN/shared/components/appsec/appsec@v1.1.0

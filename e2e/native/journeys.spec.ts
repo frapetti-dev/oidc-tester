@@ -1,4 +1,4 @@
-import { addFlow, addIdp, resultTab, run } from '../support/steps.ts';
+import { addFlow, addIdp, openSection, resultTab, run } from '../support/steps.ts';
 import { expect, test } from './fixtures.ts';
 
 test.describe('native journeys (real Tauri app over CDP)', () => {
@@ -37,13 +37,15 @@ test.describe('native journeys (real Tauri app over CDP)', () => {
 			await expect(page.getByText('tls', { exact: true }).first()).toBeVisible();
 
 			await page.getByRole('button', { name: 'New IdP', exact: true }).click();
+			await openSection(page, 'Network');
 			await page.getByRole('switch', { name: /Skip TLS validation/ }).click();
 			await page.getByRole('treeitem').first().click();
 			await run(page);
 			await expect(resultTab(page, 'Tokens')).toHaveAttribute('aria-selected', 'true');
 		} finally {
 			// Removes the client secret from the OS keychain.
-			await page.getByRole('button', { name: 'Delete IdP New IdP' }).click();
+			await page.getByRole('button', { name: 'More actions for New IdP' }).click();
+			await page.getByRole('menuitem', { name: 'Delete…' }).click();
 			await page.getByRole('button', { name: 'Delete', exact: true }).click();
 		}
 	});
@@ -54,7 +56,8 @@ test.describe('native journeys (real Tauri app over CDP)', () => {
 	}) => {
 		const first = await launch();
 		await addIdp(first.page, { clientId: 'public-spa' });
-		await first.page.getByRole('button', { name: 'Save as workspace…' }).click();
+		await first.page.getByRole('button', { name: 'Workspace actions' }).click();
+		await first.page.getByRole('menuitem', { name: 'Save as workspace…' }).click();
 		await first.page
 			.getByRole('dialog', { name: 'Save as workspace' })
 			.getByLabel('Name')

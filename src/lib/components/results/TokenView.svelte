@@ -5,6 +5,9 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import CodeView from '$lib/components/ui/CodeView.svelte';
+	import { menu } from '$lib/components/ui/contextMenu';
+	import type { MenuEntry } from '$lib/components/ui/menu';
+	import { contextMenu } from '$lib/state/contextMenu.svelte';
 	import ValidationList from './ValidationList.svelte';
 
 	interface Props {
@@ -55,9 +58,42 @@
 		clearTimeout(copyTimer);
 		copyTimer = setTimeout(() => (copyStatus = 'idle'), 1500);
 	}
+
+	function tokenMenu(): MenuEntry[] {
+		const entries: MenuEntry[] = [{ label: 'Copy token', onselect: () => contextMenu.copy(token) }];
+		if (inspected.kind === 'jws' || inspected.kind === 'jwe') {
+			const header = inspected.header;
+			entries.push({
+				label: 'Copy header JSON',
+				onselect: () => contextMenu.copy(JSON.stringify(header, null, 2))
+			});
+		}
+		if (inspected.kind === 'jws') {
+			const payload = inspected.payload;
+			entries.push({
+				label: 'Copy payload JSON',
+				onselect: () => contextMenu.copy(JSON.stringify(payload, null, 2))
+			});
+		}
+		return entries;
+	}
+
+	function claimMenu(name: string, value: unknown): MenuEntry[] {
+		return [
+			{
+				label: 'Copy value',
+				onselect: () => contextMenu.copy(typeof value === 'string' ? value : JSON.stringify(value))
+			},
+			{ label: 'Copy claim name', onselect: () => contextMenu.copy(name) },
+			{
+				label: 'Copy as JSON',
+				onselect: () => contextMenu.copy(JSON.stringify({ [name]: value }))
+			}
+		];
+	}
 </script>
 
-<section class="panel" aria-label={label}>
+<section class="panel" aria-label={label} {@attach menu(tokenMenu, `Actions for ${label}`)}>
 	<div class="panel-header">
 		<span>{label}</span>
 		<span class="flex items-center gap-2 normal-case">
@@ -78,7 +114,7 @@
 			</Button>
 		</span>
 	</div>
-	<div class="flex flex-col gap-3 p-3">
+	<div class="@container flex flex-col gap-3 p-3">
 		{#if inspected.kind === 'jws'}
 			<p class="font-mono text-xs leading-relaxed break-all" data-testid="token-encoded">
 				{#each segments as segment, index (index)}<span
@@ -87,12 +123,12 @@
 						class={SEGMENT_CLASS[segment.part]}>{segment.text}</span
 					>{/each}
 			</p>
-			<div class="grid grid-cols-2 gap-3">
-				<div>
+			<div class="grid gap-3 @2xl:grid-cols-2">
+				<div class="min-w-0">
 					<h4 class="field-label">Header</h4>
 					<CodeView value={inspected.header} />
 				</div>
-				<div>
+				<div class="min-w-0">
 					<h4 class="field-label">Payload</h4>
 					<CodeView value={inspected.payload} />
 				</div>
@@ -108,7 +144,12 @@
 				<tbody>
 					{#each claims as [name, value] (name)}
 						{@const description = describeClaim(name)}
-						<tr class="border-t border-border align-top" data-testid="claim-row" data-claim={name}>
+						<tr
+							class="border-t border-border align-top"
+							data-testid="claim-row"
+							data-claim={name}
+							{@attach menu(() => claimMenu(name, value), `Actions for claim ${name}`)}
+						>
 							<td class="py-1 pr-3 font-mono text-jwt-payload">{name}</td>
 							<td class="py-1 pr-3 font-mono break-all">{formatClaimValue(name, value, now)}</td>
 							<td class="py-1 text-fg-muted">

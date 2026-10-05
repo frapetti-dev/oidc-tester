@@ -14,11 +14,20 @@ export async function waitForApp(page: Page): Promise<void> {
 	await expect(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
 }
 
+/** Expands a collapsible form section unless it is already open (the state is remembered). */
+export async function openSection(page: Page, title: string): Promise<void> {
+	const header = page.getByRole('button', { name: title, exact: true });
+	if ((await header.getAttribute('aria-expanded')) === 'false') await header.click();
+}
+
 /** Adds an IdP, discovers its endpoints from the mock IdP, and fills the client. */
 export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 	await page.getByRole('button', { name: 'Add IdP' }).click();
 	await page.getByLabel('Issuer', { exact: true }).fill(setup.issuer ?? MOCK_ISSUER);
-	if (setup.tlsInsecure) await page.getByRole('switch', { name: /Skip TLS validation/ }).click();
+	if (setup.tlsInsecure) {
+		await openSection(page, 'Network');
+		await page.getByRole('switch', { name: /Skip TLS validation/ }).click();
+	}
 	await page.getByRole('button', { name: 'Discover' }).click();
 	await expect(page.getByLabel('Token endpoint', { exact: true })).not.toHaveValue('');
 	await page.getByLabel('Client ID').fill(setup.clientId);
@@ -31,7 +40,8 @@ export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 
 /** Adds a flow of `type` to the IdP named `idpName` and selects it. */
 export async function addFlow(page: Page, idpName: string, type: string): Promise<void> {
-	await page.getByRole('button', { name: `Add flow to ${idpName}` }).click();
+	await page.getByRole('button', { name: `More actions for ${idpName}` }).click();
+	await page.getByRole('menuitem', { name: 'Add flow…' }).click();
 	await page.getByLabel('Flow type').selectOption(type);
 	await page.getByRole('button', { name: 'Add', exact: true }).click();
 	await expect(page.getByRole('button', { name: 'Run', exact: true })).toBeVisible();

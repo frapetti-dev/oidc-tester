@@ -2,6 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
 	import TokenView from './TokenView.svelte';
+	import ContextMenuHost from '$lib/components/ui/ContextMenuHost.svelte';
 
 	const NOW_SECONDS = 1_700_000_000;
 	const NOW = NOW_SECONDS * 1000;
@@ -211,3 +212,29 @@
 		}
 	}}
 />
+
+<Story
+	name="REQ-UI-012 claim row menu copies the value"
+	parameters={{ req: ['REQ-UI-012'] }}
+	args={{ token: validToken }}
+	play={async ({ canvas, userEvent }) => {
+		const writeText = fn(async () => {});
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		try {
+			const row = canvas.getAllByTestId('claim-row').find((el) => el.dataset.claim === 'sub');
+			row?.dispatchEvent(
+				new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 40, clientY: 40 })
+			);
+			await userEvent.click(await canvas.findByRole('menuitem', { name: 'Copy value' }));
+			await expect(writeText).toHaveBeenCalledTimes(1);
+			await expect(writeText).toHaveBeenCalledWith('alice');
+		} finally {
+			Reflect.deleteProperty(navigator, 'clipboard');
+		}
+	}}
+>
+	{#snippet template(args)}
+		<TokenView {...args} />
+		<ContextMenuHost />
+	{/snippet}
+</Story>

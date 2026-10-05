@@ -1,12 +1,15 @@
 <script lang="ts">
-	import type { IpcApi } from '$lib/ipc/types';
+	import type { HttpExchange, IpcApi } from '$lib/ipc/types';
 	import type { Run } from '$lib/model/run';
 	import { toCurl } from '$lib/export/curl';
 	import { toHar } from '$lib/export/har';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { menu } from '$lib/components/ui/contextMenu';
+	import type { MenuEntry } from '$lib/components/ui/menu';
+	import { contextMenu } from '$lib/state/contextMenu.svelte';
 	import ExchangeDetail from './ExchangeDetail.svelte';
-	import { buildTimeline, filterEntries, type TimelineFilter } from './entries';
+	import { buildTimeline, filterEntries, type TimelineEntry, type TimelineFilter } from './entries';
 
 	interface Props {
 		ipc: IpcApi;
@@ -40,15 +43,50 @@
 		return status >= 400 ? 'danger' : status >= 300 ? 'warning' : 'success';
 	}
 
-	async function copyCurl() {
-		if (selected?.type !== 'http' || !run) return;
-		const { tlsInsecure, proxy } = run.idpSnapshot.http;
+	function curlOf(exchange: HttpExchange): string {
+		const http = run?.idpSnapshot.http;
+		return http ? toCurl(exchange, { tlsInsecure: http.tlsInsecure, proxy: http.proxy }) : '';
+	}
+
+	async function copyCurl(exchange: HttpExchange) {
 		try {
-			await navigator.clipboard.writeText(toCurl(selected.exchange, { tlsInsecure, proxy }));
+			await navigator.clipboard.writeText(curlOf(exchange));
 			notice = 'cURL copied';
 		} catch {
 			notice = 'Could not copy cURL';
 		}
+	}
+
+	/** REQ-UI-013 */
+	function entryMenu(entry: TimelineEntry): MenuEntry[] {
+		const harEntry: MenuEntry = { label: 'Save HAR…', onselect: saveHar };
+		if (entry.type === 'nav') {
+			return [
+				{ label: 'Copy URL', onselect: () => contextMenu.copy(entry.url) },
+				'separator',
+				harEntry
+			];
+		}
+		const { exchange } = entry;
+		return [
+			{ label: 'Copy URL', onselect: () => contextMenu.copy(exchange.request.url) },
+			{ label: 'Copy as cURL', onselect: () => contextMenu.copy(curlOf(exchange)) },
+			{
+				label: 'Copy response body',
+				disabled: exchange.response.body === '',
+				onselect: () => contextMenu.copy(exchange.response.body)
+			},
+			'separator',
+			harEntry
+		];
+	}
+
+	function historyMenu(runId: string): MenuEntry[] {
+		return [
+			{ label: 'Open', onselect: () => onselectrun(runId) },
+			'separator',
+			{ label: 'Delete', danger: true, onselect: () => ondeleterun(runId) }
+		];
 	}
 
 	/** REQ-TL-005 */
@@ -98,6 +136,7 @@
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-surface-sunken"
 						aria-current={selection?.index === index && selected !== null}
 						onclick={() => run && (selection = { runId: run.id, index })}
+						{@attach menu(() => entryMenu(entry), 'Actions for entry')}
 					>
 						{#if entry.type === 'nav'}
 							<Badge>NAV</Badge>
@@ -131,7 +170,7 @@
 				{@const { request, response } = selected.exchange}
 				<div class="flex items-center justify-between gap-2">
 					<h3 class="font-mono text-xs break-all">{request.method} {request.url}</h3>
-					<Button onclick={copyCurl}>Copy cURL</Button>
+					<Button onclick={() => copyCurl(selected.exchange)}>Copy cURL</Button>
 				</div>
 				<p class="text-xs text-fg-muted">
 					{response.status}
@@ -150,7 +189,10 @@
 		{:else}
 			<ul class="divide-y divide-border panel">
 				{#each runs as r (r.id)}
-					<li class="flex items-center gap-2 px-3 py-1.5 text-xs">
+					<li
+						class="flex items-center gap-2 px-3 py-1.5 text-xs"
+						{@attach menu(() => historyMenu(r.id), `Actions for run ${r.flowSnapshot.name}`)}
+					>
 						<span class="text-fg-muted">{new Date(r.startedAt).toLocaleString()}</span>
 						<span class="min-w-0 flex-1 truncate">{r.flowSnapshot.name}</span>
 						<Badge variant={STATUS_VARIANT[r.status]}>{r.status}</Badge>

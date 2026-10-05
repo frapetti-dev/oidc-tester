@@ -1,11 +1,22 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { createMemoryIpc } from '$lib/testing/memoryIpc';
 import TimelinePanel from './TimelinePanel.svelte';
+import ContextMenuHost from '$lib/components/ui/ContextMenuHost.svelte';
+import { contextMenu } from '$lib/state/contextMenu.svelte';
 import { sampleRun } from './fixtures';
 
+afterEach(() => (contextMenu.current = null));
+
+function rightClick(element: Element) {
+	element.dispatchEvent(
+		new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 40, clientY: 40 })
+	);
+}
+
 function setup(overrides: { savePath?: string | null } = {}) {
+	render(ContextMenuHost);
 	const ipc = createMemoryIpc();
 	ipc.savePath = overrides.savePath === undefined ? 'C:/out/run.har' : overrides.savePath;
 	const run = sampleRun();
@@ -70,5 +81,43 @@ describe('TimelinePanel', () => {
 		await page.getByRole('button', { name: /^Delete run/ }).click();
 		expect(onselectrun).toHaveBeenCalledWith('run-1');
 		expect(ondeleterun).toHaveBeenCalledWith('run-1');
+	});
+
+	it('REQ-UI-013 history row menu opens and deletes runs', async () => {
+		const { onselectrun, ondeleterun, run } = setup();
+		const row = page.getByText(run.flowSnapshot.name).last().element().closest('li')!;
+		rightClick(row);
+		const items = page.getByRole('menuitem');
+		await expect.element(items.first()).toBeVisible();
+		expect(items.elements().map((el) => el.textContent?.trim())).toEqual(['Open', 'Delete']);
+		await page.getByRole('menuitem', { name: 'Delete' }).click();
+		expect(ondeleterun).toHaveBeenCalledWith('run-1');
+		expect(onselectrun).not.toHaveBeenCalled();
+	});
+
+	it('REQ-UI-013 entry menus differ for HTTP and navigation entries and gate the response body', async () => {
+		const { ipc } = setup();
+		const list = page.getByRole('list', { name: 'Timeline' });
+
+		rightClick(list.getByRole('button', { name: /NAV/ }).first().element());
+		await expect.element(page.getByRole('menuitem').first()).toBeVisible();
+		expect(
+			page
+				.getByRole('menuitem')
+				.elements()
+				.map((el) => el.textContent?.trim())
+		).toEqual(['Copy URL', 'Save HAR…']);
+		await page.getByRole('menuitem', { name: 'Save HAR…' }).click();
+		await vi.waitFor(() => expect(ipc.files.has('C:/out/run.har')).toBe(true));
+
+		rightClick(list.getByRole('button', { name: /POST/ }).element());
+		await expect.element(page.getByRole('menuitem', { name: 'Copy as cURL' })).toBeVisible();
+		expect(
+			page
+				.getByRole('menuitem')
+				.elements()
+				.map((el) => el.textContent?.trim())
+		).toEqual(['Copy URL', 'Copy as cURL', 'Copy response body', 'Save HAR…']);
+		await expect.element(page.getByRole('menuitem', { name: 'Copy response body' })).toBeEnabled();
 	});
 });

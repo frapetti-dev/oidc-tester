@@ -45,6 +45,15 @@ async function run(ipc: NodeIpc, cmd: string, args: Args): Promise<unknown> {
 			);
 		case 'plugin:dialog|open':
 			return ipc.pickOpenPath(args.options as { filters?: FileDialogFilter[] });
+		case 'plugin:window|minimize':
+		case 'plugin:window|toggle_maximize':
+		case 'plugin:window|close':
+		case 'plugin:event|unlisten':
+			return null;
+		case 'plugin:window|is_maximized':
+			return false;
+		case 'plugin:event|listen':
+			return 1;
 		default:
 			throw new Error(`E2E harness: unhandled command ${cmd}`);
 	}

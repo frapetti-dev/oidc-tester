@@ -5,6 +5,7 @@ import type { HttpExchange, HttpRequestSpec, HttpResult } from '$lib/ipc/types';
 import type { Idp } from '$lib/model/schema';
 import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
 import { WorkspaceStore } from '$lib/state/workspace.svelte';
+import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '$lib/state/sections.svelte';
 import IdpForm, { type DiscoveryOutcome } from './IdpForm.svelte';
 
 const ISSUER = 'https://idp.example/realm';
@@ -45,6 +46,8 @@ let results: DiscoveryOutcome[];
 let cleared: number;
 
 beforeEach(async () => {
+	localStorage.removeItem(SECTIONS_STORAGE_KEY);
+	resetSectionMemory();
 	ipc = createMemoryIpc();
 	store = new WorkspaceStore(ipc);
 	await store.init();
@@ -55,6 +58,10 @@ beforeEach(async () => {
 	cleared = 0;
 });
 afterEach(() => store.dispose());
+
+async function openNetwork() {
+	await page.getByRole('button', { name: 'Network', exact: true }).click();
+}
 
 function mount() {
 	return render(IdpForm, {
@@ -108,6 +115,7 @@ describe('IdpForm', () => {
 
 	it('REQ-UI-004 skip-TLS toggle shows the danger badge and updates settings', async () => {
 		mount();
+		await openNetwork();
 		await expect.element(page.getByText('TLS validation disabled')).not.toBeInTheDocument();
 		await page.getByRole('switch', { name: 'Skip TLS validation' }).click();
 		expect(idp.http.tlsInsecure).toBe(true);
@@ -137,6 +145,7 @@ describe('IdpForm', () => {
 
 	it('REQ-HTTP-003 edits proxy, timeout, origin, CORS check and headers; jwt alg only for client_secret_jwt', async () => {
 		mount();
+		await openNetwork();
 		await expect.element(page.getByLabelText('Assertion algorithm')).not.toBeInTheDocument();
 		await page.getByLabelText('Client authentication').selectOptions('client_secret_jwt');
 		await page.getByLabelText('Assertion algorithm').selectOptions('HS384');
@@ -160,7 +169,31 @@ describe('IdpForm', () => {
 
 	it('REQ-CAP-005 Clear browser session button notifies the parent', async () => {
 		mount();
+		await openNetwork();
 		await page.getByRole('button', { name: 'Clear browser session' }).click();
 		expect(cleared).toBe(1);
+	});
+
+	it('REQ-UI-014 Network starts collapsed, remembers being opened, and flags TLS off while collapsed', async () => {
+		idp.http.tlsInsecure = true;
+		mount();
+		const network = page.getByRole('button', { name: 'Network', exact: true });
+		await expect.element(network).toHaveAttribute('aria-expanded', 'false');
+		await expect
+			.element(page.getByRole('switch', { name: 'Skip TLS validation' }))
+			.not.toBeInTheDocument();
+		await expect.element(page.getByText('TLS validation off')).toBeVisible();
+
+		await network.click();
+		await expect.element(network).toHaveAttribute('aria-expanded', 'true');
+		await expect.element(page.getByRole('switch', { name: 'Skip TLS validation' })).toBeVisible();
+		await expect.element(page.getByText('TLS validation off')).not.toBeInTheDocument();
+		expect(localStorage.getItem('oidct.sections') ?? '').toContain('"idp.network":true');
+
+		for (const title of ['Provider', 'Endpoints', 'Client']) {
+			await expect
+				.element(page.getByRole('button', { name: title, exact: true }))
+				.toHaveAttribute('aria-expanded', 'true');
+		}
 	});
 });

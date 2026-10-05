@@ -6,6 +6,8 @@ import type { Run } from '$lib/model/run';
 import type { DeviceUserCode } from '$lib/oauth/device';
 import { createMemoryIpc, type MemoryIpc } from '$lib/testing/memoryIpc';
 import { WorkspaceStore } from '$lib/state/workspace.svelte';
+import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '$lib/state/sections.svelte';
+import '../../../app.css';
 import FlowForm from './FlowForm.svelte';
 
 let ipc: MemoryIpc;
@@ -13,6 +15,8 @@ let store: WorkspaceStore;
 let idp: Idp;
 
 beforeEach(async () => {
+	localStorage.removeItem(SECTIONS_STORAGE_KEY);
+	resetSectionMemory();
 	ipc = createMemoryIpc();
 	store = new WorkspaceStore(ipc);
 	await store.init();
@@ -201,6 +205,42 @@ describe('FlowForm', () => {
 		await expect.element(page.getByRole('button', { name: /Running/ })).toBeDisabled();
 		await page.getByRole('button', { name: 'Cancel' }).click();
 		expect(oncancel).toHaveBeenCalledOnce();
+	});
+
+	it('REQ-UI-014 flow sections: Advanced is collapsed by default, omitted when empty, and counts set fields', async () => {
+		mount('client_credentials');
+		expect(page.getByRole('button', { name: 'Advanced', exact: true }).query()).toBeNull();
+		for (const title of ['Request', 'Extra parameters & headers']) {
+			await expect
+				.element(page.getByRole('button', { name: title, exact: true }))
+				.toHaveAttribute('aria-expanded', 'true');
+		}
+	});
+
+	it('REQ-UI-014 Advanced holds the optional authorize params and persists being opened', async () => {
+		const flow = mount('authorization_code');
+		flow.params.prompt = 'login';
+		const advanced = page.getByRole('button', { name: 'Advanced', exact: true });
+		await expect.element(advanced).toHaveAttribute('aria-expanded', 'false');
+		expect(page.getByLabelText('Prompt').query()).toBeNull();
+		await expect.element(page.getByText('1 set')).toBeVisible();
+
+		await advanced.click();
+		await expect.element(page.getByLabelText('Prompt')).toHaveValue('login');
+		expect(localStorage.getItem(SECTIONS_STORAGE_KEY) ?? '').toContain('"flow.advanced":true');
+	});
+
+	it('REQ-UI-015 the action bar keeps Run and the authorize preview together', async () => {
+		mount('authorization_code');
+		const run = page.getByRole('button', { name: 'Run', exact: true }).element();
+		const bar = run.parentElement!;
+		expect(getComputedStyle(bar).position).toBe('sticky');
+		await expect.element(preview()).toBeVisible();
+		expect(bar.contains(preview().element())).toBe(true);
+		expect(bar.contains(page.getByRole('button', { name: 'Copy' }).element())).toBe(true);
+
+		await page.getByRole('button', { name: 'Show full URL' }).click();
+		await expect.element(page.getByRole('button', { name: 'Hide full URL' })).toBeVisible();
 	});
 
 	it('run bar: shows the device user code, opens the verification URI and counts down', async () => {
