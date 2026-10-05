@@ -107,4 +107,11 @@ export interface IpcApi {
 	}): Promise<string | null>;
 	/** Native open dialog; null when cancelled. */
 	pickOpenPath(opts: { filters?: FileDialogFilter[] }): Promise<string | null>;
+	/** Main-window chrome for the custom titlebar. */
+	windowMinimize(): Promise<void>;
+	windowToggleMaximize(): Promise<void>;
+	windowClose(): Promise<void>;
+	windowIsMaximized(): Promise<boolean>;
+	/** Calls `listener` after every window resize; resolves to an unsubscribe function. */
+	onWindowResized(listener: () => void): Promise<() => void>;
 }

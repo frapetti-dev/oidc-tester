@@ -1,9 +1,12 @@
 import type { FlowType } from '$lib/model/schema';
 
-export interface SidebarWorkspace {
+export interface WorkspaceSummary {
 	id: string;
 	name: string;
 }
+
+/** REQ-UI-008: state shown by the titlebar run indicator. */
+export type RunIndicatorState = 'idle' | 'running' | 'success' | 'error';
 
 export interface SidebarFlow {
 	id: string;

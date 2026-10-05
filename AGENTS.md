@@ -40,10 +40,11 @@ Folder map:
 
 ```
 specs/                     requirements (REQ IDs) — source of truth
+docs/ui-design.md          UI/UX design reference (identity, layout, forms, menus, a11y)
 scripts/                   spec-coverage.ts (+ test)
 src/app.css                Tailwind v4 tokens + @utility classes
 src/routes/                SPA shell (+page.svelte, +layout.*)
-src/lib/components/        ui/ (base components + stories), editors, panels
+src/lib/components/        ui/ (base components + stories), shell/ (TitleBar, Sidebar, Drawer), app/ (AppRoot, layout), editors, panels
 src/lib/oauth/             discovery, pkce, authorize, callback, clientAuth, tokenRequest, tokenResponse, device, cors, transport
 src/lib/jwt/               decode, verify, idToken, claims
 src/lib/run/engine.ts      per-flow orchestration producing Run
@@ -71,10 +72,14 @@ Never change behavior without changing the spec first. Never delete a REQ: mark 
 
 ## Styling rules
 
-- Colors/radii/fonts come from semantic tokens in `src/app.css` `@theme` (`surface`, `surface-raised`, `surface-sunken`, `border`, `fg`, `fg-muted`, `accent`, `accent-fg`, `danger`, `success`, `warning`, `info`, `jwt-header`, `jwt-payload`, `jwt-signature`, `method-get`, `method-post`, `font-mono`, `radius-control`). Light/dark via CSS vars; dark mode is the `.dark` class on `<html>`.
+- Colors/radii/fonts come from semantic tokens in `src/app.css` `@theme` (`surface`, `surface-raised`, `surface-sunken`, `border`, `fg`, `fg-muted`, `accent`, `accent-fg`, `danger`, `success`, `warning`, `info`, `focus`, `scrim`, `window-close`, `jwt-header`, `jwt-payload`, `jwt-signature`, `method-get`, `method-post`, `font-mono`, `radius-control`, `radius-menu`, `radius-panel`, `radius-dialog`, `shadow-float`). Light/dark via CSS vars; dark mode is the `.dark` class on `<html>`.
 - **No raw palette colors** (`bg-gray-800`, `text-red-500`, …) in `.svelte` files under `src/lib/components` and `src/routes` (enforced by a Vitest test, REQ-UI-003).
 - Repeated utility groups become `@utility` classes in `src/app.css` (`btn`, `btn-primary`, `input-field`, `panel`, `badge`, `kv-grid`, `code-block`, `tab`, …).
 - Theme: System/Light/Dark, persisted in `localStorage` key `oidct.theme`.
+- Identity "Signal ink": chrome is monochrome ink on cool grey; color only carries meaning (JWT parts, status, HTTP methods, danger, focus). Fonts: Atkinson Hyperlegible Next + Mono. Icons: `@lucide/svelte`, imported per icon (`@lucide/svelte/icons/<name>`).
+- The main window has no OS titlebar (`decorations: false`); `TitleBar.svelte` provides drag region, window controls (via `IpcApi.window*`) and the run indicator. The auth popup keeps native decorations.
+- Layout adapts to the app width (`layoutMode`: wide ≥1200, medium ≥900, narrow <900 with a sidebar drawer). Forms are at most 44rem wide, split into `FormSection`s whose open state persists in `localStorage` key `oidct.sections`.
+- The WebView2 default context menu is suppressed; in-app menus use `menu.ts` types, the `menu(items, label)` attachment (`ui/contextMenu.ts`), `contextMenu` state and one `ContextMenuHost` at the app root. Text fields get the edit menu automatically.
 
 ## Testing rules
 

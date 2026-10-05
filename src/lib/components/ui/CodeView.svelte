@@ -14,7 +14,9 @@
 </script>
 
 <script lang="ts">
+	import { contextMenu } from '$lib/state/contextMenu.svelte';
 	import Button from './Button.svelte';
+	import { menu } from './contextMenu';
 
 	let { value }: { value: unknown } = $props();
 
@@ -35,7 +37,13 @@
 </script>
 
 <div class="relative">
-	<pre data-testid="code" class="code-block pr-20">{text}</pre>
+	<pre
+		data-testid="code"
+		class="code-block pr-20"
+		{@attach menu(
+			() => [{ label: 'Copy', onselect: () => contextMenu.copy(text) }],
+			'Code actions'
+		)}>{text}</pre>
 	<div class="absolute top-1.5 right-1.5">
 		<Button variant="ghost" onclick={copy}>
 			{status === 'copied' ? 'Copied' : status === 'failed' ? 'Copy failed' : 'Copy'}

@@ -16,10 +16,11 @@
 				"title": "OIDC Tester",
 				"width": 1440,
 				"height": 900,
-				"minWidth": 1024,
-				"minHeight": 680,
+				"minWidth": 720,
+				"minHeight": 520,
 				"resizable": true,
-				"fullscreen": false
+				"fullscreen": false,
+				"decorations": false
 			}
 		],
 		"security": {

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import FormSection from '$lib/components/ui/FormSection.svelte';
 	import KeyValueEditor from '$lib/components/ui/KeyValueEditor.svelte';
 	import SecretField from '$lib/components/ui/SecretField.svelte';
 	import SelectField from '$lib/components/ui/SelectField.svelte';
@@ -80,6 +82,7 @@
 			idp.client.auth === 'client_secret_post' ||
 			idp.client.auth === 'client_secret_jwt'
 	);
+	const enabledHeaders = $derived(idp.http.headers.filter((row) => row.enabled).length);
 
 	async function runDiscovery() {
 		discovering = true;
@@ -106,8 +109,8 @@
 	}
 </script>
 
-<div class="flex flex-col gap-6">
-	<section class="flex flex-col gap-3" aria-label="Identity provider">
+<div class="@container flex max-w-[44rem] flex-col">
+	<FormSection id="idp.provider" title="Provider">
 		<TextField label="Name" bind:value={idp.name} />
 		<div class="flex items-end gap-2">
 			<div class="flex-1">
@@ -163,28 +166,30 @@
 				{/if}
 			</div>
 		{/if}
-	</section>
+	</FormSection>
 
-	<section class="flex flex-col gap-3" aria-label="Endpoints">
+	<FormSection id="idp.endpoints" title="Endpoints">
 		{#each ENDPOINT_KEYS as key (key)}
 			<TextField label={ENDPOINT_LABELS[key]} mono bind:value={idp.endpoints[key]} />
 		{/each}
-	</section>
+	</FormSection>
 
-	<section class="flex flex-col gap-3" aria-label="Client">
+	<FormSection id="idp.client" title="Client">
 		<TextField label="Client ID" mono bind:value={idp.client.clientId} />
-		<SelectField
-			label="Client authentication"
-			options={AUTH_OPTIONS}
-			bind:value={idp.client.auth}
-		/>
-		{#if idp.client.auth === 'client_secret_jwt'}
+		<div class="field-grid">
 			<SelectField
-				label="Assertion algorithm"
-				options={JWT_ALG_OPTIONS}
-				bind:value={idp.client.jwtAlg}
+				label="Client authentication"
+				options={AUTH_OPTIONS}
+				bind:value={idp.client.auth}
 			/>
-		{/if}
+			{#if idp.client.auth === 'client_secret_jwt'}
+				<SelectField
+					label="Assertion algorithm"
+					options={JWT_ALG_OPTIONS}
+					bind:value={idp.client.jwtAlg}
+				/>
+			{/if}
+		</div>
 		{#if needsSecret}
 			<SecretField
 				label="Client secret"
@@ -193,9 +198,22 @@
 				onclear={() => store.clearClientSecret(idp)}
 			/>
 		{/if}
-	</section>
+	</FormSection>
 
-	<section class="flex flex-col gap-3" aria-label="HTTP settings">
+	<FormSection id="idp.network" title="Network" defaultOpen={false}>
+		{#snippet summary(open)}
+			{#if !open}
+				{#if idp.http.tlsInsecure}<Badge variant="danger">TLS validation off</Badge>{/if}
+				{#if enabledHeaders > 0}
+					<span class="text-xs text-fg-muted">
+						{enabledHeaders}
+						{enabledHeaders === 1 ? 'header' : 'headers'}
+					</span>
+				{/if}
+				{#if idp.http.origin.trim() !== ''}<span class="text-xs text-fg-muted">Origin set</span
+					>{/if}
+			{/if}
+		{/snippet}
 		<KeyValueEditor
 			label="Headers (back-channel requests)"
 			addLabel="Add header"
@@ -203,7 +221,21 @@
 			bind:rows={idp.http.headers}
 		/>
 		<TlsInsecureToggle bind:checked={idp.http.tlsInsecure} />
-		<SelectField label="Proxy" options={PROXY_OPTIONS} bind:value={idp.http.proxy.mode} />
+		<div class="field-grid">
+			<SelectField label="Proxy" options={PROXY_OPTIONS} bind:value={idp.http.proxy.mode} />
+			<TextField
+				label="Timeout (ms)"
+				type="number"
+				min="1"
+				bind:value={
+					() => String(idp.http.timeoutMs),
+					(v) => {
+						const n = Math.trunc(Number(v));
+						if (n > 0) idp.http.timeoutMs = n;
+					}
+				}
+			/>
+		</div>
 		{#if idp.http.proxy.mode === 'url'}
 			<TextField
 				label="Proxy URL"
@@ -213,18 +245,6 @@
 			/>
 		{/if}
 		<TextField
-			label="Timeout (ms)"
-			type="number"
-			min="1"
-			bind:value={
-				() => String(idp.http.timeoutMs),
-				(v) => {
-					const n = Math.trunc(Number(v));
-					if (n > 0) idp.http.timeoutMs = n;
-				}
-			}
-		/>
-		<TextField
 			label="Origin"
 			mono
 			placeholder="https://app.example"
@@ -232,9 +252,8 @@
 			bind:value={idp.http.origin}
 		/>
 		<Toggle label="Check CORS for this origin" bind:checked={idp.http.corsCheck} />
-	</section>
-
-	<section class="flex items-center gap-2" aria-label="Browser session">
-		<Button onclick={onclearsession}>Clear browser session</Button>
-	</section>
+		<div>
+			<Button onclick={onclearsession}>Clear browser session</Button>
+		</div>
+	</FormSection>
 </div>

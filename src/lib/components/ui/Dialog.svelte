@@ -55,10 +55,10 @@
 <dialog
 	bind:this={dialog}
 	aria-label={title}
-	class="m-auto w-96 max-w-[90vw] rounded-control border border-border bg-surface-raised p-0 text-fg backdrop:bg-fg/30"
+	class="m-auto w-[26rem] max-w-[90vw] rounded-dialog border border-border bg-surface-raised p-0 text-fg shadow-float backdrop:bg-scrim"
 	onclose={() => (open = false)}
 >
-	<form class="space-y-3 p-4" onsubmit={confirm}>
+	<form class="space-y-4 p-5" onsubmit={confirm}>
 		<h2 class="text-base font-semibold">{title}</h2>
 		{#if message}<p class="text-sm text-fg-muted">{message}</p>{/if}
 		{#if inputLabel !== undefined}

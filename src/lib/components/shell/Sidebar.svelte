@@ -1,86 +1,101 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import SelectField from '$lib/components/ui/SelectField.svelte';
-	import type { SidebarFlow, SidebarIdp, SidebarWorkspace } from './types';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import Plus from '@lucide/svelte/icons/plus';
+	import { menu } from '$lib/components/ui/contextMenu';
+	import type { MenuEntry } from '$lib/components/ui/menu';
+	import { contextMenu } from '$lib/state/contextMenu.svelte';
+	import type { SidebarFlow, SidebarIdp } from './types';
 
 	interface Props {
-		workspaces: SidebarWorkspace[];
-		workspaceId: string;
 		idps: SidebarIdp[];
 		selectedFlowId?: string;
 		selectedIdpId?: string;
 		onselectidp?: (idpId: string) => void;
-		/** Per-IdP buttons (add flow, duplicate, delete). */
-		idpActions?: Snippet<[SidebarIdp]>;
-		/** Per-flow buttons (duplicate, delete). */
-		flowActions?: Snippet<[SidebarIdp, SidebarFlow]>;
-		onworkspacechange?: (workspaceId: string) => void;
 		onselectflow?: (idpId: string, flowId: string) => void;
-		/** Workspace-level buttons (save as, rename, delete, export, import, add IdP). */
-		actions?: Snippet;
+		onaddidp?: () => void;
+		canAddIdp?: boolean;
+		/** REQ-UI-011: shown on right-click, the ContextMenu key and the "More actions" button. */
+		idpMenu?: (idp: SidebarIdp) => MenuEntry[];
+		flowMenu?: (idp: SidebarIdp, flow: SidebarFlow) => MenuEntry[];
 	}
 
 	let {
-		workspaces,
-		workspaceId = $bindable(),
 		idps,
 		selectedFlowId,
 		selectedIdpId,
 		onselectidp,
-		idpActions,
-		flowActions,
-		onworkspacechange,
 		onselectflow,
-		actions
+		onaddidp,
+		canAddIdp = true,
+		idpMenu,
+		flowMenu
 	}: Props = $props();
 
-	const workspaceName = $derived(workspaces.find((w) => w.id === workspaceId)?.name ?? '');
+	const MORE_BUTTON =
+		'btn btn-ghost btn-icon size-7 shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100';
 </script>
 
 <aside aria-label="Sidebar" class="flex h-full min-h-0 flex-col bg-surface-raised">
-	<div class="space-y-2 border-b border-border p-3">
-		<SelectField
-			label="Workspace"
-			bind:value={workspaceId}
-			options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
-			onchange={(event) => onworkspacechange?.(event.currentTarget.value)}
-		/>
-		{#if actions}
-			<div class="flex flex-wrap gap-1.5">{@render actions()}</div>
-		{/if}
+	<div class="border-b border-border p-3">
+		<button type="button" class="btn w-full" disabled={!canAddIdp} onclick={() => onaddidp?.()}>
+			<Plus size={14} aria-hidden="true" />
+			Add IdP
+		</button>
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-auto p-2">
-		<div class="px-1 pt-1 pb-2 text-xs font-medium text-fg-muted">{workspaceName}</div>
 		{#if idps.length === 0}
 			<p class="px-1 py-2 text-sm text-fg-muted">No IdPs yet</p>
 		{:else}
 			<ul role="tree" aria-label="IdPs and flows" class="space-y-2">
 				{#each idps as idp (idp.id)}
 					<li role="none">
-						<div class="flex items-center justify-between gap-1">
+						<div
+							class="group flex items-center gap-1 rounded-control"
+							{@attach menu(() => idpMenu?.(idp) ?? [], `Actions for ${idp.name}`)}
+						>
 							<button
 								type="button"
 								class={[
-									'min-w-0 flex-1 cursor-pointer truncate rounded-control px-1 py-0.5 text-left text-sm font-semibold hover:bg-surface-sunken',
-									idp.id === selectedIdpId && 'text-accent'
+									'min-w-0 flex-1 cursor-pointer truncate rounded-control px-1.5 py-1 text-left text-sm font-semibold hover:bg-surface-sunken',
+									idp.id === selectedIdpId && 'bg-surface-sunken'
 								]}
 								onclick={() => onselectidp?.(idp.id)}>{idp.name}</button
 							>
-							{#if idpActions}
-								<div class="flex shrink-0 gap-0.5">{@render idpActions(idp)}</div>
+							<span class="text-xs text-fg-muted" aria-hidden="true">{idp.flows.length}</span>
+							{#if idpMenu}
+								<button
+									type="button"
+									class={[MORE_BUTTON, idp.id === selectedIdpId && 'opacity-100']}
+									aria-label="More actions for {idp.name}"
+									aria-haspopup="menu"
+									onclick={(event) =>
+										contextMenu.openAt(
+											event.currentTarget,
+											idpMenu(idp),
+											`Actions for ${idp.name}`
+										)}
+								>
+									<Ellipsis size={14} aria-hidden="true" />
+								</button>
 							{/if}
 						</div>
 						<ul role="group" class="mt-1">
 							{#each idp.flows as flow (flow.id)}
-								<li role="none" class="flex items-center gap-0.5">
+								<li
+									role="none"
+									class="group flex items-center gap-0.5"
+									{@attach menu(() => flowMenu?.(idp, flow) ?? [], `Actions for ${flow.name}`)}
+								>
 									<button
 										type="button"
 										role="treeitem"
 										aria-selected={flow.id === selectedFlowId}
 										class={[
-											'flex min-w-0 flex-1 cursor-pointer flex-col items-start border-l-2 border-transparent px-2.5 py-1 text-left text-sm hover:bg-surface-sunken',
-											flow.id === selectedFlowId && 'border-accent bg-surface-sunken font-semibold'
+											'flex min-w-0 flex-1 cursor-pointer flex-col items-start border-l-2 px-2.5 py-1 text-left text-sm hover:bg-surface-sunken',
+											flow.id === selectedFlowId
+												? 'border-fg bg-surface-sunken font-semibold'
+												: 'border-transparent'
 										]}
 										onclick={() => onselectflow?.(idp.id, flow.id)}
 									>
@@ -90,8 +105,21 @@
 											>{flow.type}</span
 										>
 									</button>
-									{#if flowActions}
-										<div class="flex shrink-0 gap-0.5">{@render flowActions(idp, flow)}</div>
+									{#if flowMenu}
+										<button
+											type="button"
+											class={[MORE_BUTTON, flow.id === selectedFlowId && 'opacity-100']}
+											aria-label="More actions for {flow.name}"
+											aria-haspopup="menu"
+											onclick={(event) =>
+												contextMenu.openAt(
+													event.currentTarget,
+													flowMenu(idp, flow),
+													`Actions for ${flow.name}`
+												)}
+										>
+											<Ellipsis size={14} aria-hidden="true" />
+										</button>
 									{/if}
 								</li>
 							{:else}

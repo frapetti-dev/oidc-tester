@@ -1,4 +1,4 @@
-import { mockIPC } from '@tauri-apps/api/mocks';
+import { mockIPC, mockWindows } from '@tauri-apps/api/mocks';
 
 /** Envelope the Playwright harness returns for every command. */
 export type E2eReply = { ok: true; value: unknown } | { ok: false; error: unknown };
@@ -12,6 +12,7 @@ declare global {
 
 /** Forwards every `invoke(cmd, args)` (including plugin commands) to `window.__e2eInvoke`. */
 export function installE2eIpc(): void {
+	mockWindows('main');
 	mockIPC(async (cmd, args) => {
 		const bridge = window.__e2eInvoke;
 		if (!bridge) throw new Error('window.__e2eInvoke is not exposed');

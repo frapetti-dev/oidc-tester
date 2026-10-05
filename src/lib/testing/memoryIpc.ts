@@ -18,6 +18,7 @@ export interface MemoryIpc extends IpcApi {
 	/** Next paths returned by the dialogs (null = cancelled). */
 	savePath: string | null;
 	openPath: string | null;
+	maximized: boolean;
 	onHttpSend: (req: HttpRequestSpec) => Promise<HttpResult>;
 	onAuthWindowOpen: (args: AuthWindowArgs) => Promise<AuthWindowResult>;
 }
@@ -36,6 +37,7 @@ function assertValidPath(path: string) {
  * path validation as the Rust storage module; transport calls are programmable per test.
  */
 export function createMemoryIpc(): MemoryIpc {
+	const resizeListeners = new Set<() => void>();
 	const ipc: MemoryIpc = {
 		docs: new Map(),
 		secrets: new Map(),
@@ -45,6 +47,7 @@ export function createMemoryIpc(): MemoryIpc {
 		failSecretSet: null,
 		savePath: null,
 		openPath: null,
+		maximized: false,
 		onHttpSend: async () => {
 			throw new Error('httpSend not programmed');
 		},
@@ -107,7 +110,25 @@ export function createMemoryIpc(): MemoryIpc {
 		},
 		pickSavePath: async (_opts: { defaultPath?: string; filters?: FileDialogFilter[] }) =>
 			ipc.savePath,
-		pickOpenPath: async (_opts: { filters?: FileDialogFilter[] }) => ipc.openPath
+		pickOpenPath: async (_opts: { filters?: FileDialogFilter[] }) => ipc.openPath,
+		windowMinimize: async () => {
+			ipc.calls.push('windowMinimize');
+		},
+		windowToggleMaximize: async () => {
+			ipc.calls.push('windowToggleMaximize');
+			ipc.maximized = !ipc.maximized;
+			for (const l of resizeListeners) l();
+		},
+		windowClose: async () => {
+			ipc.calls.push('windowClose');
+		},
+		windowIsMaximized: async () => ipc.maximized,
+		onWindowResized: async (listener) => {
+			resizeListeners.add(listener);
+			return () => {
+				resizeListeners.delete(listener);
+			};
+		}
 	};
 	return ipc;
 }

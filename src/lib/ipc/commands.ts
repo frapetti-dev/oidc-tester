@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import type { HttpFailure, HttpExchange, HttpResult, IpcApi } from './types';
 
@@ -35,5 +36,10 @@ export const ipc: IpcApi = {
 	pickOpenPath: async (opts) => {
 		const picked = await openDialog({ multiple: false, directory: false, ...opts });
 		return typeof picked === 'string' ? picked : null;
-	}
+	},
+	windowMinimize: () => getCurrentWindow().minimize(),
+	windowToggleMaximize: () => getCurrentWindow().toggleMaximize(),
+	windowClose: () => getCurrentWindow().close(),
+	windowIsMaximized: () => getCurrentWindow().isMaximized(),
+	onWindowResized: (listener) => getCurrentWindow().onResized(() => listener())
 };
