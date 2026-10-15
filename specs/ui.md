@@ -179,3 +179,14 @@ When the user clicks `Add flow to {client}` on a client row
 Then a menu lists every flow type by its label; choosing one creates that flow under the client and selects it, with no confirmation dialog, and the Flow tab opens
 And the IdP row shows no counter
 And hover and selection tint the whole row with rounded corners; only the deepest selected row shows the ink indicator at its left edge
+
+### REQ-UI-018 Token sub-tabs
+
+Status: Accepted
+
+Given a run with tokens
+When the Tokens tab renders
+Then the summary (`token_type`, `expires_in`, `scope`) stays above a tab list labelled `Tokens`
+And the tab list has, in this order, `Access token`, `ID token`, `Refresh token` (each only when that token was returned), `UserInfo` (only when UserInfo can be called or a UserInfo response exists) and `Raw response` (always)
+And only the selected tab's content is shown; the first tab is selected by default
+And `Use refresh token` sits in the `Refresh token` tab and `Call UserInfo` in the `UserInfo` tab

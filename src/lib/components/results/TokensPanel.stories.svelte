@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect, fn, within } from 'storybook/test';
 	import { newFlow, newIdp } from '#lib/model/schema.js';
 	import type { Run } from '#lib/model/run.js';
 	import TokensPanel from './TokensPanel.svelte';
@@ -70,21 +70,55 @@
 />
 
 <Story
-	name="Every returned token gets its own view, with signature and raw response"
-	args={{ run: makeRun() }}
-	play={async ({ canvas }) => {
+	name="REQ-UI-018 Every returned item gets its own sub-tab"
+	parameters={{ req: ['REQ-UI-018'] }}
+	args={{ run: makeRun(), onuserinfo: fn() }}
+	play={async ({ canvas, userEvent }) => {
+		const tablist = canvas.getByRole('tablist', { name: 'Tokens' });
+		await expect(
+			within(tablist)
+				.getAllByRole('tab')
+				.map((t) => t.textContent?.trim())
+		).toEqual(['Access token', 'ID token', 'Refresh token', 'UserInfo', 'Raw response']);
+		await expect(canvas.getByRole('tab', { name: 'Access token' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(canvas.getByRole('region', { name: 'Access token' })).toBeVisible();
-		await expect(canvas.getByRole('region', { name: 'ID token' })).toBeVisible();
-		await expect(canvas.getByRole('region', { name: 'Refresh token' })).toBeVisible();
+		await expect(canvas.queryByRole('region', { name: 'ID token' })).toBeNull();
+
+		await userEvent.click(canvas.getByRole('tab', { name: 'ID token' }));
 		const idSection = canvas.getByRole('region', { name: 'ID token' });
 		await expect(idSection).toHaveTextContent('Signature valid (RS256)');
 		await expect(idSection).toHaveTextContent('iss matches the issuer');
+		await expect(canvas.queryByRole('region', { name: 'Access token' })).toBeNull();
 		await expect(canvas.getByTestId('token-summary')).toHaveTextContent('expires_in 3600');
+
+		await userEvent.click(canvas.getByRole('tab', { name: 'Raw response' }));
 		await expect(canvas.getByRole('region', { name: 'Raw token response' })).toHaveTextContent(
 			'"token_type": "Bearer"'
 		);
+
+		await userEvent.click(canvas.getByRole('tab', { name: 'Refresh token' }));
 		await expect(canvas.queryByRole('button', { name: 'Use refresh token' })).toBeNull();
-		await expect(canvas.queryByRole('button', { name: 'Call UserInfo' })).toBeNull();
+		await userEvent.click(canvas.getByRole('tab', { name: 'UserInfo' }));
+		await expect(canvas.getByRole('button', { name: 'Call UserInfo' })).toBeVisible();
+	}}
+/>
+
+<Story
+	name="REQ-UI-018 Only returned tokens get a sub-tab"
+	parameters={{ req: ['REQ-UI-018'] }}
+	args={{
+		run: makeRun({ tokens: { access_token: 'opaque-access', token_type: 'Bearer', raw: {} } })
+	}}
+	play={async ({ canvas }) => {
+		const tablist = canvas.getByRole('tablist', { name: 'Tokens' });
+		await expect(
+			within(tablist)
+				.getAllByRole('tab')
+				.map((t) => t.textContent?.trim())
+		).toEqual(['Access token', 'Raw response']);
 	}}
 />
 
@@ -93,6 +127,7 @@
 	parameters={{ req: ['REQ-FLOW-007'] }}
 	args={{ run: makeRun(), onuserefresh: fn() }}
 	play={async ({ canvas, userEvent, args }) => {
+		await userEvent.click(canvas.getByRole('tab', { name: 'Refresh token' }));
 		await userEvent.click(canvas.getByRole('button', { name: 'Use refresh token' }));
 		await expect(args.onuserefresh).toHaveBeenCalledTimes(1);
 		await expect(args.onuserefresh).toHaveBeenCalledWith('opaque-refresh-token');
@@ -122,6 +157,7 @@
 		userinfo: { sub: 'alice', email: 'alice@example.test' }
 	}}
 	play={async ({ canvas, userEvent, args }) => {
+		await userEvent.click(canvas.getByRole('tab', { name: 'UserInfo' }));
 		await userEvent.click(canvas.getByRole('button', { name: 'Call UserInfo' }));
 		await expect(args.onuserinfo).toHaveBeenCalledTimes(1);
 		await expect(canvas.getByRole('region', { name: 'UserInfo' })).toHaveTextContent(
@@ -137,7 +173,8 @@
 		run: makeRun({ tokens: { id_token: idToken, raw: {} } }),
 		onuserinfo: fn()
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ canvas, userEvent }) => {
+		await userEvent.click(canvas.getByRole('tab', { name: 'UserInfo' }));
 		await expect(canvas.getByRole('button', { name: 'Call UserInfo' })).toBeDisabled();
 	}}
 />

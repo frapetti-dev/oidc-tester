@@ -17,6 +17,7 @@ test.describe('native journeys (real Tauri app over CDP)', () => {
 		await expect(resultTab(page, 'Tokens')).toHaveAttribute('aria-selected', 'true', {
 			timeout: 30_000
 		});
+		await page.getByRole('tab', { name: 'ID token' }).click();
 		await expect(page.getByTestId('sig-badge').first()).toContainText('Signature valid');
 	});
 

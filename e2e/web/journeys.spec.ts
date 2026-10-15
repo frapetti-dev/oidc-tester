@@ -19,6 +19,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 		await run(app);
 
 		await expect(resultTab(app, 'Tokens')).toHaveAttribute('aria-selected', 'true');
+		await app.getByRole('tab', { name: 'ID token' }).click();
 		const idToken = app.getByRole('region', { name: /id.?token/i }).first();
 		await expect(idToken.getByTestId('sig-badge')).toContainText('Signature valid');
 		await expect(idToken.getByText('alice').first()).toBeVisible();
