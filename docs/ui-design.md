@@ -86,7 +86,23 @@ The mode is derived from the app root's measured width (`layoutMode()` in `src/l
 
 Min window size is 720x520 (`tauri.conf.json`). Panes are resized with `SplitPane` separators (1px line, wider invisible hit area, `focus` color on hover/drag/focus; arrow keys, Home and End work on a focused separator).
 
-The drawer (`Drawer.svelte`) sits below the titlebar, closes on Escape, scrim click or selecting an IdP/flow, and returns focus to the invoker.
+The drawer (`Drawer.svelte`) sits below the titlebar, closes on Escape, scrim click or selecting an IdP/client/flow, and returns focus to the invoker.
+
+### Sidebar tree (REQ-UI-016)
+
+Hierarchy is carried by structure, not color: three levels differ in weight, size and indent, and a 1px `border` line connects each row's children to it.
+
+| Level  | Row                                                       | Children                         |
+| ------ | --------------------------------------------------------- | -------------------------------- |
+| IdP    | 14px semibold, `server` icon, groups split by a rule      | clients, indented under the icon |
+| Client | 13px medium, `app-window` icon                            | flows, indented under the icon   |
+| Flow   | 13px regular, flow type below in mono 11px muted, no icon | none                             |
+
+- **Rounded rows.** Each row is one `radius-control` pill that `surface-sunken` tints on hover and selection, so its action buttons sit inside the tint.
+- **One selection mark.** Only the deepest selected row shows the indicator: a 2px `fg` pill inside the row's left edge, on top of the tint. Selected rows keep their action buttons visible.
+- **Add buttons (REQ-UI-017).** IdP and client rows show a `+` before `More actions` (hover, focus or selection). `Add client to {idp}` creates a `New client` at once. `Add flow to {client}` opens a menu of flow types; choosing one creates the flow at once. Neither asks for confirmation.
+- Icons repeat what the level name says and are `aria-hidden`; the tree keeps `role=tree` with flows as `treeitem`.
+- Placeholders `No clients` and `No flows` sit on the containment line of the empty parent.
 
 ## Window chrome
 
@@ -112,13 +128,14 @@ A cancelled run goes straight to idle. With reduced motion the sweep stops and t
 
 ## Forms (REQ-UI-014, REQ-UI-015)
 
-- **Bounded width.** IdP and flow forms are at most 44rem wide. Short fields pair up in `field-grid` (for example Response type + Response mode, Proxy + Timeout).
+- **Bounded width.** IdP, client and flow forms are at most 44rem wide. Short fields pair up in `field-grid` (for example Response type + Response mode, Proxy + Timeout).
 - **Collapsible sections.** `FormSection.svelte` renders a disclosure button (`aria-expanded`) per group. A section is omitted when none of its fields applies to the current flow type.
 
-  | Form | Open by default                     | Closed by default |
-  | ---- | ----------------------------------- | ----------------- |
-  | IdP  | Provider, Endpoints, Client         | Network           |
-  | Flow | Request, Extra parameters & headers | Advanced          |
+  | Form   | Open by default                     | Closed by default |
+  | ------ | ----------------------------------- | ----------------- |
+  | IdP    | Provider, Endpoints                 | Network           |
+  | Client | Client                              |                   |
+  | Flow   | Request, Extra parameters & headers | Advanced          |
 
 - **State memory.** Open/closed state is global per section id (not per IdP or flow) and persists in `localStorage` key `oidct.sections` as `{ [sectionId]: boolean }`. Invalid JSON is treated as empty.
 - **Closed-section summaries.** A collapsed section keeps important state visible: Network shows a danger badge `TLS validation off`, `{n} headers`, `Origin set`; Advanced shows `{n} set`. Risky settings must never hide silently.
@@ -130,7 +147,8 @@ All context menus are in-app HTML, not native menus, so they render above modal 
 
 | Where                           | Items                                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------ |
-| IdP row                         | Add flow, Duplicate, Rename, Delete                                            |
+| IdP row                         | Add client, Duplicate, Rename, Delete                                          |
+| Client row                      | Duplicate, Rename, Delete                                                      |
 | Flow row                        | Run, Duplicate, Rename, Delete                                                 |
 | Workspace actions               | Save as workspace, Rename, Export, Import, Clear scratchpad / Delete workspace |
 | Token view / claim row          | Copy token, header, payload / value, name, as JSON                             |

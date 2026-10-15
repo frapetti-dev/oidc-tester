@@ -7,19 +7,23 @@ import type {
 	HttpResult,
 	IpcApi
 } from '#lib/ipc/types.js';
-import { newFlow, newIdp, type Flow, type Idp } from '#lib/model/schema.js';
+import { newClient, newFlow, newIdp, type Client, type Flow, type Idp } from '#lib/model/schema.js';
 import { newHttpLog } from './transport';
 import { buildTokenRequest, requestTokens, type Grant } from './tokenRequest';
 
 const TOKEN = 'https://idp.test/token';
 const ORIGIN = 'https://app.example';
 
-function makeIdp(auth: Idp['client']['auth'] = 'client_secret_basic'): Idp {
+function makeIdp(auth: Client['auth'] = 'client_secret_basic'): Idp {
 	const idp = newIdp();
 	idp.endpoints.token = TOKEN;
-	idp.client = { ...idp.client, clientId: 'cid', auth, hasSecret: auth !== 'none' };
+	const client = newClient();
+	Object.assign(client, { clientId: 'cid', auth, hasSecret: auth !== 'none' });
+	idp.clients.push(client);
 	return idp;
 }
+
+const clientOf = (idp: Idp): Client => idp.clients[0];
 
 function exchange(spec: HttpRequestSpec, status: number, headers: Header[], body: string) {
 	const ex: HttpExchange = {
@@ -56,7 +60,7 @@ const okTokens = {
 };
 
 async function build(idp: Idp, flow: Flow, grant: Grant, secret: string | null = 'sec') {
-	const r = await buildTokenRequest({ idp, flow, grant, secret });
+	const r = await buildTokenRequest({ idp, client: clientOf(idp), flow, grant, secret });
 	if (!r.ok) throw new Error('expected ok');
 	return r.spec;
 }
@@ -186,7 +190,14 @@ describe('requestTokens', () => {
 	it('REQ-CAUTH-005 a missing secret fails before any HTTP request is made', async () => {
 		const { ipc, calls } = fakeIpc(() => okTokens);
 		const log = newHttpLog();
-		const result = await requestTokens(ipc, { idp: makeIdp(), flow, grant, secret: null, log });
+		const result = await requestTokens(ipc, {
+			idp: makeIdp(),
+			client: clientOf(makeIdp()),
+			flow,
+			grant,
+			secret: null,
+			log
+		});
 		expect(result.tokens).toBeUndefined();
 		expect(result.error).toMatchObject({ source: 'validation', error: 'missing_client_secret' });
 		expect(calls).toHaveLength(0);
@@ -196,7 +207,14 @@ describe('requestTokens', () => {
 	it('sends the request, logs the exchange and returns parsed tokens', async () => {
 		const { ipc, calls } = fakeIpc(() => okTokens);
 		const log = newHttpLog();
-		const result = await requestTokens(ipc, { idp: makeIdp(), flow, grant, secret: 'sec', log });
+		const result = await requestTokens(ipc, {
+			idp: makeIdp(),
+			client: clientOf(makeIdp()),
+			flow,
+			grant,
+			secret: 'sec',
+			log
+		});
 		expect(result.tokens?.access_token).toBe('at');
 		expect(result.validations).toEqual([]);
 		expect(calls).toHaveLength(1);
@@ -211,7 +229,14 @@ describe('requestTokens', () => {
 		};
 		const { ipc } = fakeIpc(() => ({ ok: false, failure }));
 		const log = newHttpLog();
-		const result = await requestTokens(ipc, { idp: makeIdp(), flow, grant, secret: 'sec', log });
+		const result = await requestTokens(ipc, {
+			idp: makeIdp(),
+			client: clientOf(makeIdp()),
+			flow,
+			grant,
+			secret: 'sec',
+			log
+		});
 		expect(result.error).toEqual({ source: 'network', error: 'connect', detail: 'refused' });
 		expect(log.failures).toEqual([failure]);
 	});
@@ -226,7 +251,7 @@ describe('requestTokens', () => {
 				: { ...okTokens, headers: [['Access-Control-Allow-Origin', ORIGIN]] }
 		);
 		const log = newHttpLog();
-		await requestTokens(ipc, { idp, flow, grant, secret: 'sec', log });
+		await requestTokens(ipc, { idp, client: clientOf(idp), flow, grant, secret: 'sec', log });
 		expect(calls.map((c) => c.method)).toEqual(['OPTIONS', 'POST']);
 		expect(calls[0].headers).toEqual([
 			['Origin', ORIGIN],
@@ -244,7 +269,14 @@ describe('requestTokens', () => {
 		idp.http.corsCheck = corsCheck;
 		idp.http.origin = origin;
 		const { ipc, calls } = fakeIpc(() => okTokens);
-		const result = await requestTokens(ipc, { idp, flow, grant, secret: 'sec', log: newHttpLog() });
+		const result = await requestTokens(ipc, {
+			idp,
+			client: clientOf(idp),
+			flow,
+			grant,
+			secret: 'sec',
+			log: newHttpLog()
+		});
 		expect(calls.map((c) => c.method)).toEqual(['POST']);
 		expect(result.validations).toEqual([]);
 	});
@@ -256,7 +288,14 @@ describe('requestTokens', () => {
 		const { ipc, calls } = fakeIpc((spec) =>
 			spec.method === 'OPTIONS' ? { status: 204 } : okTokens
 		);
-		const result = await requestTokens(ipc, { idp, flow, grant, secret: 'sec', log: newHttpLog() });
+		const result = await requestTokens(ipc, {
+			idp,
+			client: clientOf(idp),
+			flow,
+			grant,
+			secret: 'sec',
+			log: newHttpLog()
+		});
 		expect(calls.map((c) => c.method)).toEqual(['OPTIONS', 'POST']);
 		expect(result.tokens?.access_token).toBe('at');
 		expect(result.validations).toHaveLength(1);
@@ -277,7 +316,14 @@ describe('requestTokens', () => {
 		const { ipc } = fakeIpc((spec) =>
 			spec.method === 'OPTIONS' ? { status: 204, headers: cors } : { ...okTokens, headers: cors }
 		);
-		const result = await requestTokens(ipc, { idp, flow, grant, secret: 'sec', log: newHttpLog() });
+		const result = await requestTokens(ipc, {
+			idp,
+			client: clientOf(idp),
+			flow,
+			grant,
+			secret: 'sec',
+			log: newHttpLog()
+		});
 		expect(result.validations).toEqual([
 			{ id: 'cors', level: 'ok', message: `CORS allowed for ${ORIGIN}` }
 		]);
@@ -295,7 +341,14 @@ describe('requestTokens', () => {
 		const { ipc, calls } = fakeIpc((spec) =>
 			spec.method === 'OPTIONS' ? { ok: false, failure } : okTokens
 		);
-		const result = await requestTokens(ipc, { idp, flow, grant, secret: 'sec', log: newHttpLog() });
+		const result = await requestTokens(ipc, {
+			idp,
+			client: clientOf(idp),
+			flow,
+			grant,
+			secret: 'sec',
+			log: newHttpLog()
+		});
 		expect(calls.map((c) => c.method)).toEqual(['OPTIONS', 'POST']);
 		expect(result.tokens?.access_token).toBe('at');
 		expect(result.validations[0]).toMatchObject({ id: 'cors', level: 'warn' });

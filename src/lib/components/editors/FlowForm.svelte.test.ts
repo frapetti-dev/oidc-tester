@@ -1,7 +1,7 @@
 import { page } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { Flow, FlowType, Idp } from '#lib/model/schema.js';
+import { newClient, type Client, type Flow, type FlowType, type Idp } from '#lib/model/schema.js';
 import type { Run } from '#lib/model/run.js';
 import type { DeviceUserCode } from '#lib/oauth/device.js';
 import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
@@ -13,6 +13,7 @@ import FlowForm from './FlowForm.svelte';
 let ipc: MemoryIpc;
 let store: WorkspaceStore;
 let idp: Idp;
+let client: Client;
 
 beforeEach(async () => {
 	localStorage.removeItem(SECTIONS_STORAGE_KEY);
@@ -24,7 +25,10 @@ beforeEach(async () => {
 	idp = store.current!.idps.find((i) => i.id === added.id)!;
 	idp.issuer = 'https://idp.example';
 	idp.endpoints.authorization = 'https://idp.example/authorize';
-	idp.client.clientId = 'my-client';
+	const created = newClient();
+	created.clientId = 'my-client';
+	idp.clients.push(created);
+	client = idp.clients[0];
 });
 afterEach(() => store.dispose());
 
@@ -37,10 +41,11 @@ interface Overrides {
 }
 
 async function mount(type: FlowType, over: Overrides = {}): Promise<Flow> {
-	const added = store.addFlow(idp.id, type)!;
-	const flow = idp.flows.find((f) => f.id === added.id)!;
+	const added = store.addFlow(idp.id, client.id, type)!;
+	const flow = client.flows.find((f) => f.id === added.id)!;
 	await render(FlowForm, {
 		idp,
+		client,
 		flow,
 		store,
 		ipc,
@@ -60,6 +65,7 @@ function runWith(flow: Flow, refresh: string | undefined, id: string): Run {
 		id,
 		workspaceId: 'w',
 		idpId: idp.id,
+		clientId: client.id,
 		flowId: flow.id,
 		flowSnapshot: $state.snapshot(flow),
 		idpSnapshot: $state.snapshot(idp),
@@ -178,11 +184,12 @@ describe('FlowForm', () => {
 	});
 
 	it('REQ-FLOW-007 "Use from run…" lists only runs with a refresh token and fills the field', async () => {
-		const added = store.addFlow(idp.id, 'refresh_token')!;
-		const flow = idp.flows.find((f) => f.id === added.id)!;
+		const added = store.addFlow(idp.id, client.id, 'refresh_token')!;
+		const flow = client.flows.find((f) => f.id === added.id)!;
 		const runs = [runWith(flow, 'rt-abc', 'r1'), runWith(flow, undefined, 'r2')];
 		await render(FlowForm, {
 			idp,
+			client,
 			flow,
 			store,
 			ipc,

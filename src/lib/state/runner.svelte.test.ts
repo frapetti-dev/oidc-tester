@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Run } from '#lib/model/run.js';
-import { newFlow, newIdp, newId } from '#lib/model/schema.js';
+import { newClient, newFlow, newIdp, newId } from '#lib/model/schema.js';
 import type { RunContext } from '#lib/run/engine.js';
 import { createMemoryIpc } from '#lib/testing/memoryIpc.js';
 import { WorkspaceRepository } from './repository';
@@ -15,6 +15,7 @@ function runFor(
 		id: newId(),
 		workspaceId: ctx.workspaceId,
 		idpId: ctx.idp.id,
+		clientId: ctx.client.id,
 		flowId: ctx.flow.id,
 		flowSnapshot: ctx.flow,
 		idpSnapshot: ctx.idp,
@@ -40,15 +41,17 @@ function setup(execute: (ctx: RunContext) => Promise<Run>) {
 	});
 	const idp = newIdp('Fake');
 	const flow = newFlow('client_credentials');
-	idp.flows.push(flow);
-	return { ipc, repo, runner, idp, flow };
+	const client = newClient('Fake client');
+	client.flows.push(flow);
+	idp.clients.push(client);
+	return { ipc, repo, runner, idp, client, flow };
 }
 
 describe('RunnerStore', () => {
 	it('REQ-FLOW-012 a second start while a run is active is refused; cancel aborts the active run', async () => {
 		let release: (run: Run) => void = () => {};
 		let seen: RunContext | null = null;
-		const { runner, idp, flow } = setup(
+		const { runner, idp, client, flow } = setup(
 			(ctx) =>
 				new Promise<Run>((resolve) => {
 					seen = ctx;
@@ -57,9 +60,9 @@ describe('RunnerStore', () => {
 				})
 		);
 
-		const first = runner.start('ws1', idp, flow);
+		const first = runner.start('ws1', idp, client, flow);
 		expect(runner.running).toBe(true);
-		expect(await runner.start('ws1', idp, flow)).toBeNull();
+		expect(await runner.start('ws1', idp, client, flow)).toBeNull();
 
 		runner.cancel();
 		const run = await first;
@@ -71,11 +74,11 @@ describe('RunnerStore', () => {
 
 	it('REQ-TL-007 a finished run is persisted and becomes the shown run, newest first in history', async () => {
 		let n = 0;
-		const { repo, runner, idp, flow } = setup((ctx) =>
+		const { repo, runner, idp, client, flow } = setup((ctx) =>
 			Promise.resolve(runFor(ctx, 'success', `2026-10-02T10:0${n++}:00.000Z`))
 		);
-		const a = await runner.start('ws1', idp, flow);
-		const b = await runner.start('ws1', idp, flow);
+		const a = await runner.start('ws1', idp, client, flow);
+		const b = await runner.start('ws1', idp, client, flow);
 
 		expect(runner.shown?.id).toBe(b?.id);
 		expect(runner.runs.map((r) => r.id)).toEqual([b!.id, a!.id]);
@@ -83,8 +86,10 @@ describe('RunnerStore', () => {
 	});
 
 	it('REQ-TL-006 removing a run deletes it from storage and history', async () => {
-		const { repo, runner, idp, flow } = setup((ctx) => Promise.resolve(runFor(ctx, 'error')));
-		const run = await runner.start('ws1', idp, flow);
+		const { repo, runner, idp, client, flow } = setup((ctx) =>
+			Promise.resolve(runFor(ctx, 'error'))
+		);
+		const run = await runner.start('ws1', idp, client, flow);
 		await runner.remove('ws1', run!.id);
 		expect(runner.runs).toEqual([]);
 		expect(runner.shown).toBeNull();

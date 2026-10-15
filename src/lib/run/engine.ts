@@ -4,7 +4,7 @@ import { validateIdToken, type IdTokenContext } from '#lib/jwt/idToken.js';
 import { inspectToken } from '#lib/jwt/decode.js';
 import { verifySignature, type SignatureResult, type SignatureStatus } from '#lib/jwt/verify.js';
 import type { CallbackResult, Run, RunError, Tokens, Validation } from '#lib/model/run.js';
-import type { Flow, Idp } from '#lib/model/schema.js';
+import type { Client, Flow, Idp } from '#lib/model/schema.js';
 import {
 	buildAuthorizeUrl,
 	effectiveResponseType,
@@ -27,6 +27,8 @@ export interface RunContext {
 	ipc: IpcApi;
 	workspaceId: string;
 	idp: Idp;
+	/** The client that contains `flow`: supplies `client_id`, client authentication and secret. */
+	client: Client;
 	flow: Flow;
 	/** Aborting closes the auth window, stops device polling and ends the run as `cancelled`. */
 	signal: AbortSignal;
@@ -59,6 +61,7 @@ interface Env {
 	ipc: IpcApi;
 	/** Private clones: later edits to the live objects do not affect a running run. */
 	idp: Idp;
+	client: Client;
 	flow: Flow;
 	now: () => number;
 	log: HttpLog;
@@ -107,6 +110,7 @@ const responseTypeTokens = (flow: Flow) =>
 export async function executeRun(ctx: RunContext): Promise<Run> {
 	const now = ctx.now ?? Date.now;
 	const idp = clone(ctx.idp);
+	const client = clone(ctx.client);
 	const flow = clone(ctx.flow);
 	const startedAt = new Date(now()).toISOString();
 	const log = newHttpLog();
@@ -118,6 +122,7 @@ export async function executeRun(ctx: RunContext): Promise<Run> {
 			id,
 			workspaceId: ctx.workspaceId,
 			idpId: idp.id,
+			clientId: client.id,
 			flowId: flow.id,
 			flowSnapshot: clone(flow),
 			idpSnapshot: clone(idp),
@@ -145,6 +150,7 @@ export async function executeRun(ctx: RunContext): Promise<Run> {
 		ctx,
 		ipc: ctx.ipc,
 		idp,
+		client,
 		flow,
 		now,
 		log,
@@ -155,7 +161,7 @@ export async function executeRun(ctx: RunContext): Promise<Run> {
 	};
 
 	try {
-		env.secret = await ctx.ipc.secretGet(clientSecretKey(idp.id));
+		env.secret = await ctx.ipc.secretGet(clientSecretKey(client.id));
 		if (flow.type === 'device_code') await deviceStage(env);
 		else if (isAuthorizationEndpointFlow(flow)) await frontChannelStage(env);
 		else await backChannelStage(env);
@@ -209,7 +215,7 @@ function mergeTokens(front: Tokens | undefined, back: Tokens): Tokens {
 }
 
 async function frontChannelStage(env: Env): Promise<void> {
-	const { ipc, idp, flow, state } = env;
+	const { ipc, idp, client, flow, state } = env;
 	const redirectUri = flow.params.redirectUri.trim();
 	if (redirectUri === '') {
 		state.error = {
@@ -222,7 +228,7 @@ async function frontChannelStage(env: Env): Promise<void> {
 
 	const values = generateAuthorizeValues(flow);
 	state.values = values;
-	const built = await buildAuthorizeUrl(idp, flow, values);
+	const built = await buildAuthorizeUrl(idp, client, flow, values);
 	if (!built.ok) {
 		state.error = built.error;
 		return;
@@ -314,9 +320,10 @@ async function backChannelStage(env: Env): Promise<void> {
 
 /** One token endpoint request; its tokens are merged over any front-channel tokens. */
 async function tokenStage(env: Env, grant: Grant): Promise<void> {
-	const { ipc, idp, flow, state } = env;
+	const { ipc, idp, client, flow, state } = env;
 	const result = await requestTokens(ipc, {
 		idp,
+		client,
 		flow,
 		grant,
 		secret: env.secret,
@@ -330,11 +337,12 @@ async function tokenStage(env: Env, grant: Grant): Promise<void> {
 }
 
 async function deviceStage(env: Env): Promise<void> {
-	const { ctx, ipc, idp, flow, state } = env;
+	const { ctx, ipc, idp, client, flow, state } = env;
 	const sleep = ctx.sleep ?? defaultSleep;
 	try {
 		const result = await runDeviceFlow(ipc, {
 			idp,
+			client,
 			flow,
 			secret: env.secret,
 			log: env.log,
@@ -445,7 +453,7 @@ async function inspectTokens(env: Env): Promise<void> {
 }
 
 function claimsContext(env: Env, idToken: string): IdTokenContext {
-	const { idp, flow, state } = env;
+	const { idp, client, flow, state } = env;
 	const { callback, values } = state;
 	const isHybrid = flow.type === 'hybrid';
 	// at_hash / c_hash relate to the authorization endpoint response, so they only apply to the
@@ -455,7 +463,7 @@ function claimsContext(env: Env, idToken: string): IdTokenContext {
 	const types = responseTypeTokens(flow);
 	const ctx: IdTokenContext = {
 		issuer: idp.issuer,
-		clientId: idp.client.clientId,
+		clientId: client.clientId,
 		nonce: isAuthorizationEndpointFlow(flow) ? (values?.nonce ?? null) : null,
 		now: env.now(),
 		requireAtHash: fromAuthorizationEndpoint && types.has('id_token') && types.has('token'),
@@ -503,7 +511,10 @@ async function validateClaims(
  * GET the userinfo endpoint with `Authorization: Bearer <accessToken>` (a user-set Authorization
  * header on the IdP/flow wins). Never throws; the caller adds the exchange to the run.
  */
-export async function callUserInfo(ctx: RunContext, accessToken: string): Promise<UserInfoResult> {
+export async function callUserInfo(
+	ctx: Pick<RunContext, 'ipc' | 'idp' | 'flow'>,
+	accessToken: string
+): Promise<UserInfoResult> {
 	const url = ctx.idp.endpoints.userinfo.trim();
 	if (url === '') {
 		return {

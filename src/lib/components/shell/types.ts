@@ -14,8 +14,14 @@ export interface SidebarFlow {
 	type: FlowType;
 }
 
-export interface SidebarIdp {
+export interface SidebarClient {
 	id: string;
 	name: string;
 	flows: SidebarFlow[];
+}
+
+export interface SidebarIdp {
+	id: string;
+	name: string;
+	clients: SidebarClient[];
 }

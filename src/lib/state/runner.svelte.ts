@@ -1,6 +1,6 @@
 import type { IpcApi } from '#lib/ipc/types.js';
 import type { RunError, Run } from '#lib/model/run.js';
-import type { Flow, Idp } from '#lib/model/schema.js';
+import type { Client, Flow, Idp } from '#lib/model/schema.js';
 import type { DeviceUserCode } from '#lib/oauth/device.js';
 import type { callUserInfo, executeRun, RunContext } from '#lib/run/engine.js';
 import type { WorkspaceRepository } from './repository';
@@ -33,7 +33,7 @@ export class RunnerStore {
 	}
 
 	/** Starts a run; returns null when one is already active. */
-	async start(workspaceId: string, idp: Idp, flow: Flow): Promise<Run | null> {
+	async start(workspaceId: string, idp: Idp, client: Client, flow: Flow): Promise<Run | null> {
 		if (this.running) return null;
 		this.running = true;
 		this.userinfo = null;
@@ -44,6 +44,7 @@ export class RunnerStore {
 			ipc: this.deps.ipc,
 			workspaceId,
 			idp: $state.snapshot(idp) as Idp,
+			client: $state.snapshot(client) as Client,
 			flow: $state.snapshot(flow) as Flow,
 			signal: controller.signal,
 			appVersion: this.deps.appVersion,
@@ -90,13 +91,7 @@ export class RunnerStore {
 		const accessToken = run?.tokens?.access_token;
 		if (!run || !accessToken) return;
 		const result = await this.deps.userInfo(
-			{
-				ipc: this.deps.ipc,
-				workspaceId: run.workspaceId,
-				idp: run.idpSnapshot,
-				flow: run.flowSnapshot,
-				signal: new AbortController().signal
-			},
+			{ ipc: this.deps.ipc, idp: run.idpSnapshot, flow: run.flowSnapshot },
 			accessToken
 		);
 		this.userinfo = result.error ?? result.body ?? null;

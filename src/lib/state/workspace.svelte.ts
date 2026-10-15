@@ -2,6 +2,7 @@ import type { IpcApi } from '#lib/ipc/types.js';
 import {
 	SCRATCHPAD_ID,
 	nowIso,
+	type Client,
 	type Flow,
 	type FlowType,
 	type Idp,
@@ -9,10 +10,13 @@ import {
 } from '#lib/model/schema.js';
 import { createDebouncedSaver, type DebouncedSaver } from './autosave';
 import {
+	addClient,
 	addFlow,
 	addIdp,
+	deleteClient,
 	deleteFlow,
 	deleteIdp,
+	duplicateClient,
 	duplicateFlow,
 	duplicateIdp,
 	type SecretCopy
@@ -24,7 +28,18 @@ export const AUTOSAVE_DELAY_MS = 500;
 
 export interface Selection {
 	idpId: string | null;
+	clientId: string | null;
 	flowId: string | null;
+}
+
+/** Selection of the IdP's first client and that client's first flow. */
+function firstSelection(idp: Idp | null | undefined): Selection {
+	const client = idp?.clients[0];
+	return {
+		idpId: idp?.id ?? null,
+		clientId: client?.id ?? null,
+		flowId: client?.flows[0]?.id ?? null
+	};
 }
 
 /** Reactive state for the open workspace, with debounced autosave. */
@@ -34,7 +49,7 @@ export class WorkspaceStore {
 	/** Set when the open file failed validation; autosave is disabled while set. */
 	banner = $state<string | null>(null);
 	toast = $state<string | null>(null);
-	selection = $state<Selection>({ idpId: null, flowId: null });
+	selection = $state<Selection>({ idpId: null, clientId: null, flowId: null });
 
 	readonly repo: WorkspaceRepository;
 	private readonly ipc: IpcApi;
@@ -56,8 +71,12 @@ export class WorkspaceStore {
 		return this.current?.idps.find((i) => i.id === this.selection.idpId) ?? null;
 	}
 
+	get selectedClient(): Client | null {
+		return this.selectedIdp?.clients.find((c) => c.id === this.selection.clientId) ?? null;
+	}
+
 	get selectedFlow(): Flow | null {
-		return this.selectedIdp?.flows.find((f) => f.id === this.selection.flowId) ?? null;
+		return this.selectedClient?.flows.find((f) => f.id === this.selection.flowId) ?? null;
 	}
 
 	/** Creates the scratchpad when missing, opens it, and starts autosave. */
@@ -97,23 +116,28 @@ export class WorkspaceStore {
 		if (!loaded.ok) {
 			this.banner = loaded.message;
 			this.current = null;
-			this.selection = { idpId: null, flowId: null };
+			this.selection = { idpId: null, clientId: null, flowId: null };
 			return;
 		}
 		this.banner = null;
 		this.lastSaved = JSON.stringify(loaded.workspace);
 		this.current = loaded.workspace;
-		const firstIdp = loaded.workspace.idps[0] ?? null;
-		this.selection = { idpId: firstIdp?.id ?? null, flowId: firstIdp?.flows[0]?.id ?? null };
+		this.selection = firstSelection(loaded.workspace.idps[0]);
 	}
 
 	selectIdp(idpId: string): void {
-		const idp = this.current?.idps.find((i) => i.id === idpId);
-		this.selection = { idpId, flowId: idp?.flows[0]?.id ?? null };
+		this.selection = firstSelection(this.current?.idps.find((i) => i.id === idpId));
 	}
 
-	selectFlow(idpId: string, flowId: string): void {
-		this.selection = { idpId, flowId };
+	selectClient(idpId: string, clientId: string): void {
+		const client = this.current?.idps
+			.find((i) => i.id === idpId)
+			?.clients.find((c) => c.id === clientId);
+		this.selection = { idpId, clientId, flowId: client?.flows[0]?.id ?? null };
+	}
+
+	selectFlow(idpId: string, clientId: string, flowId: string): void {
+		this.selection = { idpId, clientId, flowId };
 	}
 
 	async saveAs(name: string): Promise<void> {
@@ -173,61 +197,85 @@ export class WorkspaceStore {
 	addIdp(): Idp | null {
 		if (!this.current) return null;
 		const idp = addIdp(this.current);
-		this.selection = { idpId: idp.id, flowId: null };
+		this.selection = { idpId: idp.id, clientId: null, flowId: null };
 		return idp;
 	}
 
-	addFlow(idpId: string, type: FlowType): Flow | null {
+	addClient(idpId: string): Client | null {
 		const idp = this.current?.idps.find((i) => i.id === idpId);
 		if (!idp) return null;
-		const flow = addFlow(idp, type);
-		this.selection = { idpId, flowId: flow.id };
+		const client = addClient(idp);
+		this.selection = { idpId, clientId: client.id, flowId: null };
+		return client;
+	}
+
+	addFlow(idpId: string, clientId: string, type: FlowType): Flow | null {
+		const client = this.findClient(idpId, clientId);
+		if (!client) return null;
+		const flow = addFlow(client, type);
+		this.selection = { idpId, clientId, flowId: flow.id };
 		return flow;
 	}
 
 	async duplicateIdp(idpId: string): Promise<void> {
 		if (!this.current) return;
 		const { copy, secretCopies } = duplicateIdp(this.current, idpId);
-		this.selection = { idpId: copy.id, flowId: copy.flows[0]?.id ?? null };
-		await this.copySecrets(secretCopies, copy);
+		this.selection = firstSelection(copy);
+		await this.copySecrets(secretCopies, copy.clients);
 	}
 
-	async duplicateFlow(idpId: string, flowId: string): Promise<void> {
+	async duplicateClient(idpId: string, clientId: string): Promise<void> {
 		const idp = this.current?.idps.find((i) => i.id === idpId);
 		if (!idp) return;
-		const { copy, secretCopies } = duplicateFlow(idp, flowId);
-		this.selection = { idpId, flowId: copy.id };
-		await this.copySecrets(secretCopies, null, copy);
+		const { copy, secretCopies } = duplicateClient(idp, clientId);
+		this.selection = { idpId, clientId: copy.id, flowId: copy.flows[0]?.id ?? null };
+		await this.copySecrets(secretCopies, [copy]);
+	}
+
+	async duplicateFlow(idpId: string, clientId: string, flowId: string): Promise<void> {
+		const client = this.findClient(idpId, clientId);
+		if (!client) return;
+		const { copy, secretCopies } = duplicateFlow(client, flowId);
+		this.selection = { idpId, clientId, flowId: copy.id };
+		await this.copySecrets(secretCopies, [client]);
 	}
 
 	async deleteIdp(idpId: string): Promise<void> {
 		if (!this.current) return;
 		const keys = deleteIdp(this.current, idpId);
 		for (const key of keys) await clearSecret(this.ipc, key);
-		if (this.selection.idpId === idpId) {
-			const next = this.current.idps[0] ?? null;
-			this.selection = { idpId: next?.id ?? null, flowId: next?.flows[0]?.id ?? null };
+		if (this.selection.idpId === idpId) this.selection = firstSelection(this.current.idps[0]);
+	}
+
+	async deleteClient(idpId: string, clientId: string): Promise<void> {
+		const idp = this.current?.idps.find((i) => i.id === idpId);
+		if (!idp) return;
+		for (const key of deleteClient(idp, clientId)) await clearSecret(this.ipc, key);
+		if (this.selection.clientId === clientId) {
+			const next = idp.clients[0];
+			this.selection = { idpId, clientId: next?.id ?? null, flowId: next?.flows[0]?.id ?? null };
 		}
 	}
 
-	async deleteFlow(idpId: string, flowId: string): Promise<void> {
-		const idp = this.current?.idps.find((i) => i.id === idpId);
-		if (!idp) return;
-		for (const key of deleteFlow(idp, flowId)) await clearSecret(this.ipc, key);
-		if (this.selection.flowId === flowId)
-			this.selection = { idpId, flowId: idp.flows[0]?.id ?? null };
+	async deleteFlow(idpId: string, clientId: string, flowId: string): Promise<void> {
+		const client = this.findClient(idpId, clientId);
+		if (!client) return;
+		for (const key of deleteFlow(client, flowId)) await clearSecret(this.ipc, key);
+		if (this.selection.flowId === flowId) {
+			this.selection = { idpId, clientId, flowId: client.flows[0]?.id ?? null };
+		}
 	}
 
 	/** Stores the client secret in the keychain; the workspace JSON only gets the flag. */
-	async setClientSecret(idp: Idp, value: string): Promise<void> {
-		const result = await storeSecret(this.ipc, clientSecretKey(idp.id), value);
-		if (result.ok) idp.client.hasSecret = true;
+	async setClientSecret(client: Client, value: string): Promise<void> {
+		const result = await storeSecret(this.ipc, clientSecretKey(client.id), value);
+		if (result.ok) client.hasSecret = true;
 		else this.toast = result.message;
 	}
 
-	async clearClientSecret(idp: Idp): Promise<void> {
-		await clearSecret(this.ipc, clientSecretKey(idp.id));
-		idp.client.hasSecret = false;
+	async clearClientSecret(client: Client): Promise<void> {
+		await clearSecret(this.ipc, clientSecretKey(client.id));
+		client.hasSecret = false;
 	}
 
 	async setFlowPassword(flow: Flow, value: string): Promise<void> {
@@ -241,17 +289,23 @@ export class WorkspaceStore {
 		flow.params.hasPassword = false;
 	}
 
-	private async copySecrets(copies: SecretCopy[], idp: Idp | null, flow?: Flow): Promise<void> {
+	private findClient(idpId: string, clientId: string): Client | undefined {
+		return this.current?.idps.find((i) => i.id === idpId)?.clients.find((c) => c.id === clientId);
+	}
+
+	/** Copies keychain entries; on failure the flag of the affected copy (found in `clients`) is cleared. */
+	private async copySecrets(copies: SecretCopy[], clients: Client[]): Promise<void> {
 		for (const { from, to } of copies) {
 			try {
 				const value = await this.ipc.secretGet(from);
 				if (value !== null) await this.ipc.secretSet(to, value);
 			} catch (e) {
 				this.toast = `Could not copy secret: ${errorMessage(e)}`;
-				if (to.endsWith(':client_secret') && idp) idp.client.hasSecret = false;
-				if (to.endsWith(':password')) {
-					const target = flow ?? idp?.flows.find((f) => passwordKey(f.id) === to);
-					if (target) target.params.hasPassword = false;
+				for (const client of clients) {
+					if (clientSecretKey(client.id) === to) client.hasSecret = false;
+					for (const flow of client.flows) {
+						if (passwordKey(flow.id) === to) flow.params.hasPassword = false;
+					}
 				}
 			}
 		}

@@ -9,7 +9,15 @@ import type {
 	HttpResult
 } from '#lib/ipc/types.js';
 import { RunSchema } from '#lib/model/run.js';
-import { newFlow, newIdp, type Flow, type FlowType, type Idp } from '#lib/model/schema.js';
+import {
+	newClient,
+	newFlow,
+	newIdp,
+	type Client,
+	type Flow,
+	type FlowType,
+	type Idp
+} from '#lib/model/schema.js';
 import { challenge } from '#lib/oauth/pkce.js';
 import { clientSecretKey, passwordKey } from '#lib/state/secrets.js';
 import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
@@ -25,6 +33,7 @@ const never = () => Promise.withResolvers<never>().promise;
 interface World {
 	ipc: MemoryIpc;
 	idp: Idp;
+	client: Client;
 	flow: Flow;
 	requests: HttpRequestSpec[];
 	opened: AuthWindowArgs[];
@@ -64,7 +73,7 @@ function callbackUrl(authorize: URL, extra: Record<string, string>, fragment: bo
 	return `${REDIRECT}${fragment ? '#' : '?'}${params}`;
 }
 
-async function createWorld(type: FlowType, auth: Idp['client']['auth'] = 'client_secret_basic') {
+async function createWorld(type: FlowType, auth: Client['auth'] = 'client_secret_basic') {
 	const { publicKey, privateKey } = await generateKeyPair('RS256', { extractable: true });
 	const jwk: JWK = { ...(await exportJWK(publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
 
@@ -78,17 +87,20 @@ async function createWorld(type: FlowType, auth: Idp['client']['auth'] = 'client
 		deviceAuthorization: `${ISSUER}/device`,
 		endSession: ''
 	};
-	idp.client = { clientId: 'cid', auth, hasSecret: auth !== 'none', jwtAlg: 'HS256' };
+	const client = newClient('Test client');
+	Object.assign(client, { clientId: 'cid', auth, hasSecret: auth !== 'none', jwtAlg: 'HS256' });
+	idp.clients.push(client);
 	const flow = newFlow(type);
 	flow.params.redirectUri = REDIRECT;
-	idp.flows.push(flow);
+	client.flows.push(flow);
 
 	const ipc = createMemoryIpc();
-	ipc.secrets.set(clientSecretKey(idp.id), 'sec');
+	ipc.secrets.set(clientSecretKey(client.id), 'sec');
 
 	const world: World = {
 		ipc,
 		idp,
+		client,
 		flow,
 		requests: [],
 		opened: [],
@@ -114,6 +126,7 @@ async function createWorld(type: FlowType, auth: Idp['client']['auth'] = 'client
 			ipc,
 			workspaceId: WORKSPACE,
 			idp: world.idp,
+			client: world.client,
 			flow: world.flow,
 			signal: new AbortController().signal,
 			now: () => NOW,
@@ -440,6 +453,36 @@ describe('executeRun: hybrid', () => {
 		expect(run.status).toBe('error');
 		expect(run.error).toMatchObject({ source: 'token', error: 'invalid_grant', httpStatus: 400 });
 		expect(run.tokens?.access_token).toBe('front-at');
+	});
+});
+
+describe('executeRun: several clients under one IdP', () => {
+	it('REQ-FLOW-015 a flow runs with the client that contains it, not another client of the IdP', async () => {
+		const w = await createWorld('authorization_code');
+		const second = newClient('Second');
+		Object.assign(second, {
+			clientId: 'cid-2',
+			auth: 'client_secret_post',
+			hasSecret: true,
+			jwtAlg: 'HS256'
+		});
+		const flow2 = newFlow('authorization_code');
+		flow2.params.redirectUri = REDIRECT;
+		second.flows.push(flow2);
+		w.idp.clients.push(second);
+		w.ipc.secrets.set(clientSecretKey(second.id), 'sec-2');
+
+		const run = await executeRun(w.ctx({ client: second, flow: flow2 }));
+
+		expect(run.status).toBe('success');
+		expect(new URL(w.opened[0].url).searchParams.get('client_id')).toBe('cid-2');
+		const [request] = tokenRequests(w);
+		const body = form(request);
+		expect(body.get('client_id')).toBe('cid-2');
+		expect(body.get('client_secret')).toBe('sec-2');
+		expect(headerOf(request, 'Authorization')).toBeUndefined();
+		expect(run).toMatchObject({ idpId: w.idp.id, clientId: second.id, flowId: flow2.id });
+		expect(run.idpSnapshot.clients.map((c) => c.id)).toContain(second.id);
 	});
 });
 

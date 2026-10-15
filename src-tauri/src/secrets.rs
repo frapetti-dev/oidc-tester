@@ -2,7 +2,7 @@ use crate::error::AppError;
 use keyring_core::{Entry, Error as KeyringError};
 use std::sync::LazyLock;
 
-/// Keychain service name; keys are `idp:<idpId>:client_secret` and `flow:<flowId>:password`.
+/// Keychain service name; keys are `client:<clientId>:client_secret` and `flow:<flowId>:password`.
 pub const SERVICE: &str = "dev.oidctester.app";
 
 /// Registers the Windows Credential Manager as keyring-core's default store, once per process.

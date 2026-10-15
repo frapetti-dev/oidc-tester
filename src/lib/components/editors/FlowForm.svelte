@@ -10,7 +10,7 @@
 	import { menu } from '#lib/components/ui/contextMenu.js';
 	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import type { IpcApi } from '#lib/ipc/types.js';
-	import { FLOW_TYPE_LABELS, type Flow, type Idp } from '#lib/model/schema.js';
+	import { FLOW_TYPE_LABELS, type Client, type Flow, type Idp } from '#lib/model/schema.js';
 	import type { Run } from '#lib/model/run.js';
 	import {
 		RESPONSE_MODE_OPTIONS,
@@ -28,9 +28,10 @@
 
 	interface Props {
 		idp: Idp;
+		client: Client;
 		flow: Flow;
 		store: WorkspaceStore;
-		/** Past runs of this IdP; those with a refresh token feed "Use from run…". */
+		/** Past runs of this client; those with a refresh token feed "Use from run…". */
 		runs: Run[];
 		running: boolean;
 		deviceCode: DeviceUserCode | null;
@@ -42,6 +43,7 @@
 
 	let {
 		idp,
+		client,
 		flow = $bindable(),
 		store,
 		runs,
@@ -98,6 +100,7 @@
 	$effect(() => {
 		const flowSnapshot = $state.snapshot(flow);
 		const idpSnapshot = $state.snapshot(idp);
+		const clientSnapshot = $state.snapshot(client);
 		const override = regenerated;
 		if (!isFrontChannel(flowSnapshot)) {
 			preview = { url: null, message: null };
@@ -110,7 +113,7 @@
 		}
 		if (override !== null) kept = { ...kept, codeVerifier: override };
 		let stale = false;
-		void previewAuthorizeUrl(idpSnapshot, flowSnapshot, kept).then((result) => {
+		void previewAuthorizeUrl(idpSnapshot, clientSnapshot, flowSnapshot, kept).then((result) => {
 			if (stale) return;
 			kept = result.values;
 			verifier = result.values.codeVerifier;

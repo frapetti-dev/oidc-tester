@@ -1,12 +1,10 @@
 import { decodeProtectedHeader, jwtVerify } from 'jose';
 import { describe, expect, it } from 'vitest';
 import type { Header } from '#lib/ipc/types.js';
-import { newIdp, type Idp } from '#lib/model/schema.js';
+import { newClient, type Client } from '#lib/model/schema.js';
 import { applyClientAuth } from './clientAuth';
 
-type Client = Idp['client'];
-
-const client = (over: Partial<Client>): Client => ({ ...newIdp().client, ...over });
+const client = (over: Partial<Client>): Client => ({ ...newClient(), ...over });
 const emptyReq = (): { headers: Header[]; params: [string, string][] } => ({
 	headers: [['Accept', 'application/json']],
 	params: [['grant_type', 'client_credentials']]

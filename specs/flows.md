@@ -122,3 +122,12 @@ Given tokens exist, the flow scope contains `openid` and the userinfo endpoint i
 When the user clicks "Call UserInfo"
 Then a GET to the userinfo endpoint is sent with `Authorization: Bearer <access_token>` and the exchange is added to the run
 And it is never invoked automatically
+
+### REQ-FLOW-015 Run uses the client that contains the flow
+
+Status: Accepted
+
+Given an IdP with two clients that differ in `clientId`, `auth` and stored secret, each with a flow
+When the flow of the second client runs
+Then the authorize URL and token request carry the second client's `client_id`, its client authentication and its secret
+And `Run.clientId` is the second client's id and `Run.idpSnapshot.clients` holds it

@@ -54,7 +54,7 @@ Then it returns `wide` when width ≥ 1200 or width is 0 (not measured yet), `me
 And in wide mode there are three side-by-side panes
 And in medium mode the Sidebar is on the left and the FlowEditor is above the ResultsPanel (horizontal separator)
 And in narrow mode the Sidebar is hidden and a titlebar button `Show sidebar` (`aria-expanded`) opens it as a modal drawer
-And Escape, the scrim, or selecting an IdP/flow closes the drawer
+And Escape, the scrim, or selecting an IdP/client/flow closes the drawer
 And the `tauri.conf.json` main window min size is 720×520
 
 ### REQ-UI-007 Custom titlebar
@@ -107,7 +107,8 @@ Status: Accepted
 
 Given the sidebar and the titlebar
 When a row is right-clicked, receives the `ContextMenu` key / Shift+F10, or its button `More actions for {name}` is clicked
-Then the IdP row menu is `Add flow…`, `Duplicate`, `Rename…`, separator, `Delete…`
+Then the IdP row menu is `Add client`, `Duplicate`, `Rename…`, separator, `Delete…`
+And the client row menu is `Duplicate`, `Rename…`, separator, `Delete…`
 And the flow row menu is `Run` (disabled while a run is in progress), `Duplicate`, `Rename…`, separator, `Delete…`
 And the titlebar button `Workspace actions` opens `Save as workspace…` (enabled only on the scratchpad), `Rename…` (disabled on the scratchpad), `Export…`, `Import…`, separator, then `Clear scratchpad…` on the scratchpad or `Delete workspace…` otherwise
 
@@ -136,11 +137,12 @@ And the history run menu is `Open`, separator, `Delete`
 
 Status: Accepted
 
-Given the IdP and flow forms
+Given the IdP, client and flow forms
 When they render
 Then they are at most 44rem wide
 And sections are disclosure buttons (`aria-expanded`)
-And IdP sections are `Provider`, `Endpoints`, `Client` (open by default) and `Network` (closed by default)
+And IdP sections are `Provider`, `Endpoints` (open by default) and `Network` (closed by default)
+And client sections are `Client` (open by default)
 And flow sections are `Request` and `Extra parameters & headers` (open by default) and `Advanced` (closed by default)
 And a section is omitted when none of its fields is visible
 And open state persists in `localStorage` key `oidct.sections` as a JSON object `{ [sectionId]: boolean }`
@@ -154,3 +156,26 @@ Given the flow editor
 When its content scrolls
 Then `Run`/`Cancel` and (front-channel flows) the authorize URL preview with `Copy` sit in a bar stuck to the bottom of the editor's scroll area
 And the bar stays in view at any scroll position
+
+### REQ-UI-016 Sidebar tree IdP → client → flow
+
+Status: Accepted
+
+Given a workspace with an IdP that has a client with flows
+When the sidebar renders
+Then the tree nests IdP rows, then their client rows, then each client's flow rows
+And an IdP without clients shows `No clients` and a client without flows shows `No flows`
+And selecting a client row opens the client form (`Client ID`, `Client authentication`, `Client secret`) in the editor, and selecting a flow row opens that flow's form
+And the IdP form has no client fields
+
+### REQ-UI-017 Add buttons on tree rows
+
+Status: Accepted
+
+Given the sidebar tree
+When the user clicks `Add client to {idp}` on an IdP row (next to `More actions for {idp}`)
+Then a client named `New client` is created under that IdP and selected, with no confirmation dialog, and the Client tab opens
+When the user clicks `Add flow to {client}` on a client row
+Then a menu lists every flow type by its label; choosing one creates that flow under the client and selects it, with no confirmation dialog, and the Flow tab opens
+And the IdP row shows no counter
+And hover and selection tint the whole row with rounded corners; only the deepest selected row shows the ink indicator at its left edge

@@ -7,7 +7,7 @@ import type {
 	HttpResult,
 	IpcApi
 } from '#lib/ipc/types.js';
-import { newFlow, newIdp, type Idp } from '#lib/model/schema.js';
+import { newClient, newFlow, newIdp, type Client, type Idp } from '#lib/model/schema.js';
 import { runDeviceFlow, type DeviceUserCode } from './device';
 import { newHttpLog } from './transport';
 
@@ -29,12 +29,18 @@ const deviceReply = (over: Record<string, unknown> = {}): Reply =>
 const pending = json(400, { error: 'authorization_pending' });
 const success = json(200, { access_token: 'at', token_type: 'Bearer', refresh_token: 'rt' });
 
-function makeIdp(auth: Idp['client']['auth'] = 'none'): Idp {
+function makeIdp(auth: Client['auth'] = 'none'): Idp {
 	const idp = newIdp();
 	idp.endpoints.deviceAuthorization = DEVICE_ENDPOINT;
 	idp.endpoints.token = TOKEN_ENDPOINT;
-	idp.client = { ...idp.client, clientId: 'cid', auth, hasSecret: auth !== 'none' };
+	const client = newClient();
+	Object.assign(client, { clientId: 'cid', auth, hasSecret: auth !== 'none' });
+	idp.clients.push(client);
 	return idp;
+}
+
+function clientInput(idp: Idp): { idp: Idp; client: Client } {
+	return { idp, client: idp.clients[0] };
 }
 
 function exchange(spec: HttpRequestSpec, reply: Reply): HttpExchange {
@@ -115,7 +121,7 @@ function run(
 	return {
 		flow,
 		promise: runDeviceFlow(h.ipc, {
-			idp: over.idp ?? makeIdp(),
+			...clientInput(over.idp ?? makeIdp()),
 			flow,
 			secret: over.secret ?? null,
 			log: newHttpLog(),
@@ -143,7 +149,7 @@ describe('runDeviceFlow', () => {
 			{ name: 'skip', value: 'x', enabled: false }
 		];
 		const result = await runDeviceFlow(h.ipc, {
-			idp: makeIdp(),
+			...clientInput(makeIdp()),
 			flow,
 			secret: null,
 			log: newHttpLog(),

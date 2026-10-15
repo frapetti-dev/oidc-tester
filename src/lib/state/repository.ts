@@ -18,7 +18,8 @@ import {
 	withoutSecretFlags,
 	type WorkspaceFile
 } from '#lib/model/workspaceFile.js';
-import { errorMessage } from './secrets';
+import { legacyClientSecretKey, legacyIdpIds } from '#lib/model/legacy.js';
+import { clientSecretKey, errorMessage } from './secrets';
 
 const WORKSPACES_DIR = 'workspaces';
 const wsDir = (id: string) => `${WORKSPACES_DIR}/${id}`;
@@ -56,7 +57,29 @@ export class WorkspaceRepository {
 		if (!parsed.success) {
 			return { ok: false, message: `Workspace file is invalid: ${describeZodError(parsed.error)}` };
 		}
+		await this.persistLegacyMigration(raw, parsed.data);
 		return { ok: true, workspace: parsed.data };
+	}
+
+	/**
+	 * REQ-WS-011: for a document still in the pre-clients shape, moves each IdP's keychain secret
+	 * to its client's key, then writes the migrated document back. A keychain failure leaves the
+	 * document as it was on disk so the next load retries.
+	 */
+	private async persistLegacyMigration(raw: unknown, migrated: Workspace): Promise<void> {
+		const legacyIds = legacyIdpIds(raw);
+		if (legacyIds.length === 0) return;
+		try {
+			for (const idpId of legacyIds) {
+				const secret = await this.ipc.secretGet(legacyClientSecretKey(idpId));
+				if (secret === null) continue;
+				await this.ipc.secretSet(clientSecretKey(idpId), secret);
+				await this.ipc.secretDelete(legacyClientSecretKey(idpId));
+			}
+		} catch {
+			return;
+		}
+		await this.save(migrated);
 	}
 
 	async save(ws: Workspace): Promise<void> {

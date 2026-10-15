@@ -38,6 +38,7 @@ export function sampleRun(id = 'run-1', overrides: Partial<Run> = {}): Run {
 		id,
 		workspaceId: 'scratchpad',
 		idpId: idp.id,
+		clientId: 'client-1',
 		flowId: flow.id,
 		flowSnapshot: flow,
 		idpSnapshot: idp,

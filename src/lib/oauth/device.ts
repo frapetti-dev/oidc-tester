@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Header, IpcApi } from '#lib/ipc/types.js';
 import type { RunError, Tokens, Validation } from '#lib/model/run.js';
-import type { Flow, Idp } from '#lib/model/schema.js';
+import type { Client, Flow, Idp } from '#lib/model/schema.js';
 import { applyClientAuth, type Param } from './clientAuth';
 import { buildTokenRequest, withExtraParams } from './tokenRequest';
 import { parseJsonResponse, parseTokenResponse } from './tokenResponse';
@@ -34,6 +34,7 @@ export interface DeviceUserCode {
 
 export interface DeviceFlowInput {
 	idp: Idp;
+	client: Client;
 	flow: Flow;
 	secret: string | null;
 	log: HttpLog;
@@ -58,14 +59,14 @@ async function requestDeviceAuthorization(
 	ipc: IpcApi,
 	input: DeviceFlowInput
 ): Promise<Authorization> {
-	const { idp, flow, secret, log } = input;
+	const { idp, client, flow, secret, log } = input;
 	const protocolHeaders: Header[] = [
 		['Content-Type', 'application/x-www-form-urlencoded'],
 		['Accept', 'application/json']
 	];
 	const auth = await applyClientAuth(
 		{ headers: protocolHeaders, params: [] },
-		idp.client,
+		client,
 		secret,
 		idp.endpoints.token,
 		input.now
@@ -120,7 +121,7 @@ export async function runDeviceFlow(
 	ipc: IpcApi,
 	input: DeviceFlowInput
 ): Promise<DeviceFlowResult> {
-	const { idp, flow, secret, log, sleep, now } = input;
+	const { idp, client, flow, secret, log, sleep, now } = input;
 	const validations: Validation[] = [];
 
 	const authorization = await requestDeviceAuthorization(ipc, input);
@@ -155,6 +156,7 @@ export async function runDeviceFlow(
 			}
 			const request = await buildTokenRequest({
 				idp,
+				client,
 				flow,
 				grant: { type: 'device_code', deviceCode },
 				secret,

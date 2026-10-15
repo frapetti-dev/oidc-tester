@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
-import { newFlow, newIdp, newWorkspace, SCRATCHPAD_ID, type Workspace } from '#lib/model/schema.js';
+import {
+	newClient,
+	newFlow,
+	newIdp,
+	newWorkspace,
+	SCRATCHPAD_ID,
+	type Workspace
+} from '#lib/model/schema.js';
 import type { Run } from '#lib/model/run.js';
 import { WorkspaceRepository } from './repository';
 import { clearSecret, clientSecretKey, passwordKey, storeSecret } from './secrets';
@@ -11,23 +18,27 @@ let repo: WorkspaceRepository;
 function workspaceWithSecrets(name = 'Alpha'): Workspace {
 	const ws = newWorkspace(name);
 	const idp = newIdp('IdP 1');
-	idp.client.hasSecret = true;
+	const client = newClient('Client 1');
+	client.hasSecret = true;
 	const flow = newFlow('password');
 	flow.params.hasPassword = true;
-	idp.flows.push(flow);
+	client.flows.push(flow);
+	idp.clients.push(client);
 	ws.idps.push(idp);
-	ipc.secrets.set(clientSecretKey(idp.id), 'client-secret');
+	ipc.secrets.set(clientSecretKey(client.id), 'client-secret');
 	ipc.secrets.set(passwordKey(flow.id), 'pw');
 	return ws;
 }
 
 function runFor(ws: Workspace): Run {
 	const idp = ws.idps[0];
-	const flow = idp.flows[0];
+	const client = idp.clients[0];
+	const flow = client.flows[0];
 	return {
 		id: crypto.randomUUID(),
 		workspaceId: ws.id,
 		idpId: idp.id,
+		clientId: client.id,
 		flowId: flow.id,
 		flowSnapshot: structuredClone(flow),
 		idpSnapshot: structuredClone(idp),
@@ -72,7 +83,9 @@ describe('scratchpad', () => {
 		const scratch = await repo.load(SCRATCHPAD_ID);
 		if (!scratch.ok) throw new Error('unreachable');
 		const idp = newIdp('Moved IdP');
-		idp.flows.push(newFlow('client_credentials'));
+		const client = newClient();
+		client.flows.push(newFlow('client_credentials'));
+		idp.clients.push(client);
 		await repo.save({ ...scratch.workspace, idps: [idp] });
 		const run = runFor({ ...scratch.workspace, idps: [idp] });
 		await repo.saveRun({ ...run, workspaceId: SCRATCHPAD_ID });
@@ -119,12 +132,12 @@ describe('rename and delete', () => {
 		const ws = workspaceWithSecrets();
 		await repo.save(ws);
 		await repo.saveRun(runFor(ws));
-		ipc.secrets.set('idp:other:client_secret', 'unrelated');
+		ipc.secrets.set('client:other:client_secret', 'unrelated');
 
 		await repo.delete(ws.id);
 
 		expect([...ipc.docs.keys()].filter((k) => k.includes(ws.id))).toEqual([]);
-		expect([...ipc.secrets.keys()]).toEqual(['idp:other:client_secret']);
+		expect([...ipc.secrets.keys()]).toEqual(['client:other:client_secret']);
 	});
 
 	it('REQ-WS-005 the scratchpad cannot be deleted, only cleared (which also drops its secrets)', async () => {
@@ -170,10 +183,10 @@ describe('export and import', () => {
 		const file = JSON.parse(text);
 		expect(file.format).toBe('oidc-tester-workspace');
 		expect(file.version).toBe(1);
-		expect(file.workspace.idps[0].client.hasSecret).toBe(false);
-		expect(file.workspace.idps[0].flows[0].params.hasPassword).toBe(false);
+		expect(file.workspace.idps[0].clients[0].hasSecret).toBe(false);
+		expect(file.workspace.idps[0].clients[0].flows[0].params.hasPassword).toBe(false);
 		expect(file.runs).toHaveLength(1);
-		expect(file.runs[0].idpSnapshot.client.hasSecret).toBe(false);
+		expect(file.runs[0].idpSnapshot.clients[0].hasSecret).toBe(false);
 		expect(file.runs[0].flowSnapshot.params.hasPassword).toBe(false);
 		expect(text).not.toContain('client-secret');
 		expect(text).not.toContain('"pw"');
@@ -187,7 +200,7 @@ describe('export and import', () => {
 		expect(ipc.files.size).toBe(0);
 	});
 
-	it('REQ-WS-008 import assigns fresh ids to workspace, IdPs and flows, re-points runs, and stores the result', async () => {
+	it('REQ-WS-008 import assigns fresh ids to workspace, IdPs, clients and flows, re-points runs, and stores the result', async () => {
 		const ws = workspaceWithSecrets('Source');
 		await repo.save(ws);
 		await repo.saveRun(runFor(ws));
@@ -202,16 +215,21 @@ describe('export and import', () => {
 		const imported = result.workspace;
 		expect(imported.id).not.toBe(ws.id);
 		expect(imported.idps[0].id).not.toBe(ws.idps[0].id);
-		expect(imported.idps[0].flows[0].id).not.toBe(ws.idps[0].flows[0].id);
+		const importedClient = imported.idps[0].clients[0];
+		const sourceClient = ws.idps[0].clients[0];
+		expect(importedClient.id).not.toBe(sourceClient.id);
+		expect(importedClient.flows[0].id).not.toBe(sourceClient.flows[0].id);
 		const runs = await repo.listRuns(imported.id);
 		expect(runs).toHaveLength(1);
 		expect(runs[0]).toMatchObject({
 			workspaceId: imported.id,
 			idpId: imported.idps[0].id,
-			flowId: imported.idps[0].flows[0].id
+			clientId: importedClient.id,
+			flowId: importedClient.flows[0].id
 		});
 		expect(runs[0].idpSnapshot.id).toBe(imported.idps[0].id);
-		expect(runs[0].flowSnapshot.id).toBe(imported.idps[0].flows[0].id);
+		expect(runs[0].idpSnapshot.clients[0].id).toBe(importedClient.id);
+		expect(runs[0].flowSnapshot.id).toBe(importedClient.flows[0].id);
 		const stored = await repo.load(imported.id);
 		expect(stored.ok).toBe(true);
 	});
@@ -269,9 +287,9 @@ describe('runs', () => {
 
 describe('secrets', () => {
 	it('REQ-SEC-002 stores the value via secretSet; failure yields the keychain error message and stores nothing', async () => {
-		const ok = await storeSecret(ipc, clientSecretKey('idp-1'), 's3cret');
+		const ok = await storeSecret(ipc, clientSecretKey('client-1'), 's3cret');
 		expect(ok).toEqual({ ok: true });
-		expect(ipc.secrets.get('idp:idp-1:client_secret')).toBe('s3cret');
+		expect(ipc.secrets.get('client:client-1:client_secret')).toBe('s3cret');
 
 		ipc.failSecretSet = 'access denied';
 		const failed = await storeSecret(ipc, passwordKey('flow-1'), 'pw');
@@ -283,8 +301,105 @@ describe('secrets', () => {
 	});
 
 	it('REQ-SEC-003 clearing deletes the keychain entry', async () => {
-		ipc.secrets.set('idp:idp-1:client_secret', 's3cret');
-		await clearSecret(ipc, clientSecretKey('idp-1'));
+		ipc.secrets.set('client:client-1:client_secret', 's3cret');
+		await clearSecret(ipc, clientSecretKey('client-1'));
 		expect(ipc.secrets.size).toBe(0);
+	});
+});
+
+describe('files written before clients existed', () => {
+	const WS_PATH = 'workspaces/old/workspace.json';
+
+	function legacyFixture() {
+		const { clients: _clients, ...base } = newIdp('Old IdP');
+		const flow = newFlow('client_credentials');
+		const idp = {
+			...base,
+			client: {
+				clientId: 'legacy-cid',
+				auth: 'client_secret_basic',
+				hasSecret: true,
+				jwtAlg: 'HS256'
+			},
+			flows: [flow]
+		};
+		const workspace = { ...newWorkspace('Old', 'old'), idps: [idp] };
+		const run = {
+			id: 'run-1',
+			workspaceId: 'old',
+			idpId: idp.id,
+			flowId: flow.id,
+			flowSnapshot: flow,
+			idpSnapshot: idp,
+			startedAt: '2026-01-01T00:00:00.000Z',
+			finishedAt: '2026-01-01T00:00:01.000Z',
+			status: 'success',
+			navigations: [],
+			exchanges: [],
+			failures: [],
+			validations: []
+		};
+		return { idp, flow, workspace, run };
+	}
+
+	it('REQ-WS-011 loads an IdP with client and flows as one Default client and moves its keychain secret', async () => {
+		const { idp, flow, workspace } = legacyFixture();
+		await ipc.docWrite(WS_PATH, workspace);
+		ipc.secrets.set(`idp:${idp.id}:client_secret`, 'old-secret');
+
+		const loaded = await repo.load('old');
+
+		if (!loaded.ok) throw new Error(loaded.message);
+		const migrated = loaded.workspace.idps[0];
+		expect('client' in migrated).toBe(false);
+		expect(migrated.clients).toHaveLength(1);
+		expect(migrated.clients[0]).toMatchObject({
+			id: idp.id,
+			name: 'Default client',
+			clientId: 'legacy-cid',
+			auth: 'client_secret_basic',
+			hasSecret: true,
+			jwtAlg: 'HS256'
+		});
+		expect(migrated.clients[0].flows.map((f) => f.id)).toEqual([flow.id]);
+		expect(ipc.secrets.get(clientSecretKey(idp.id))).toBe('old-secret');
+		expect(ipc.secrets.has(`idp:${idp.id}:client_secret`)).toBe(false);
+		const onDisk = (await ipc.docRead(WS_PATH)) as { idps: Array<Record<string, unknown>> };
+		expect(onDisk.idps[0]).toHaveProperty('clients');
+		expect(onDisk.idps[0]).not.toHaveProperty('client');
+	});
+
+	it('REQ-WS-011 gives runs without clientId the migrated client id and migrates their snapshot', async () => {
+		const { idp, run, workspace } = legacyFixture();
+		await ipc.docWrite(WS_PATH, workspace);
+		await ipc.docWrite(`workspaces/old/runs/${run.id}.json`, run);
+
+		const runs = await repo.listRuns('old');
+
+		expect(runs).toHaveLength(1);
+		expect(runs[0].clientId).toBe(idp.id);
+		expect(runs[0].idpSnapshot.clients.map((c) => c.id)).toEqual([idp.id]);
+		expect(runs[0].idpSnapshot.clients[0].flows.map((f) => f.id)).toEqual([run.flowId]);
+	});
+
+	it('REQ-WS-011 keeps the document unmigrated on disk when the keychain copy fails, and retries on the next load', async () => {
+		const { idp, workspace } = legacyFixture();
+		await ipc.docWrite(WS_PATH, workspace);
+		ipc.secrets.set(`idp:${idp.id}:client_secret`, 'old-secret');
+		ipc.failSecretSet = 'denied';
+
+		const first = await repo.load('old');
+
+		expect(first.ok).toBe(true);
+		expect(await ipc.docRead(WS_PATH)).toEqual(workspace);
+		expect(ipc.secrets.get(`idp:${idp.id}:client_secret`)).toBe('old-secret');
+
+		ipc.failSecretSet = null;
+		await repo.load('old');
+
+		expect(ipc.secrets.get(clientSecretKey(idp.id))).toBe('old-secret');
+		expect(ipc.secrets.has(`idp:${idp.id}:client_secret`)).toBe(false);
+		const onDisk = (await ipc.docRead(WS_PATH)) as { idps: Array<Record<string, unknown>> };
+		expect(onDisk.idps[0]).toHaveProperty('clients');
 	});
 });

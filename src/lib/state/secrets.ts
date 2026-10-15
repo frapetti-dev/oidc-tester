@@ -1,6 +1,6 @@
 import type { IpcApi } from '#lib/ipc/types.js';
 
-export const clientSecretKey = (idpId: string) => `idp:${idpId}:client_secret`;
+export const clientSecretKey = (clientId: string) => `client:${clientId}:client_secret`;
 export const passwordKey = (flowId: string) => `flow:${flowId}:password`;
 
 export function errorMessage(e: unknown): string {

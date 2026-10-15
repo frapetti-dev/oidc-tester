@@ -14,7 +14,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 		app
 	}) => {
 		await addIdp(app, { clientId: 'public-spa' });
-		await addFlow(app, 'New IdP', 'authorization_code_pkce');
+		await addFlow(app, 'New client', 'authorization_code_pkce');
 		await app.getByLabel('Redirect URI').fill('http://spoofed.invalid/cb');
 		await run(app);
 
@@ -28,7 +28,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 		app
 	}) => {
 		await addIdp(app, { clientId: 'public-spa' });
-		await addFlow(app, 'New IdP', 'authorization_code_pkce');
+		await addFlow(app, 'New client', 'authorization_code_pkce');
 		await app.getByLabel('Redirect URI').fill('http://spoofed.invalid/cb');
 		await addAuthorizeParam(app, 'mock_error', 'access_denied');
 		await run(app);
@@ -43,7 +43,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 			auth: 'client_secret_basic',
 			secret: 'basic-secret'
 		});
-		await addFlow(app, 'New IdP', 'client_credentials');
+		await addFlow(app, 'New client', 'client_credentials');
 		await run(app);
 
 		await expect(resultTab(app, 'Tokens')).toHaveAttribute('aria-selected', 'true');
@@ -54,7 +54,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 		app
 	}) => {
 		await addIdp(app, { clientId: 'public-spa' });
-		await addFlow(app, 'New IdP', 'device_code');
+		await addFlow(app, 'New client', 'device_code');
 		await addAuthorizeParam(app, 'mock_auto_approve', '1');
 		await run(app);
 
@@ -73,7 +73,7 @@ test.describe('web journeys (mocked IPC, real mock IdP)', () => {
 			auth: 'client_secret_basic',
 			secret: 'basic-secret'
 		});
-		await addFlow(app, 'New IdP', 'client_credentials');
+		await addFlow(app, 'New client', 'client_credentials');
 		await run(app);
 		await expect(resultTab(app, 'Tokens')).toHaveAttribute('aria-selected', 'true');
 

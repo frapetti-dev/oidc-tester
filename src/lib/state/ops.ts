@@ -1,7 +1,9 @@
 import {
+	newClient,
 	newFlow,
 	newId,
 	newIdp,
+	type Client,
 	type Flow,
 	type FlowType,
 	type Idp,
@@ -27,9 +29,15 @@ export function addIdp(ws: Workspace, name?: string): Idp {
 	return idp;
 }
 
-export function addFlow(idp: Idp, type: FlowType): Flow {
+export function addClient(idp: Idp, name?: string): Client {
+	const client = newClient(name);
+	idp.clients.push(client);
+	return client;
+}
+
+export function addFlow(client: Client, type: FlowType): Flow {
 	const flow = newFlow(type);
-	idp.flows.push(flow);
+	client.flows.push(flow);
 	return flow;
 }
 
@@ -43,15 +51,42 @@ function cloneFlow(flow: Flow): { copy: Flow; secretCopies: SecretCopy[] } {
 	return { copy, secretCopies };
 }
 
+function cloneClient(client: Client): { copy: Client; secretCopies: SecretCopy[] } {
+	const copy = jsonClone(client);
+	copy.id = newId();
+	const secretCopies: SecretCopy[] = [];
+	if (client.hasSecret) {
+		secretCopies.push({ from: clientSecretKey(client.id), to: clientSecretKey(copy.id) });
+	}
+	copy.flows = client.flows.map((flow) => {
+		const cloned = cloneFlow(flow);
+		secretCopies.push(...cloned.secretCopies);
+		return cloned.copy;
+	});
+	return { copy, secretCopies };
+}
+
 export function duplicateFlow(
-	idp: Idp,
+	client: Client,
 	flowId: string
 ): { copy: Flow; secretCopies: SecretCopy[] } {
-	const index = idp.flows.findIndex((f) => f.id === flowId);
+	const index = client.flows.findIndex((f) => f.id === flowId);
 	if (index < 0) throw new Error(`Flow not found: ${flowId}`);
-	const { copy, secretCopies } = cloneFlow(idp.flows[index]);
+	const { copy, secretCopies } = cloneFlow(client.flows[index]);
 	copy.name = `${copy.name} (copy)`;
-	idp.flows.splice(index + 1, 0, copy);
+	client.flows.splice(index + 1, 0, copy);
+	return { copy, secretCopies };
+}
+
+export function duplicateClient(
+	idp: Idp,
+	clientId: string
+): { copy: Client; secretCopies: SecretCopy[] } {
+	const index = idp.clients.findIndex((c) => c.id === clientId);
+	if (index < 0) throw new Error(`Client not found: ${clientId}`);
+	const { copy, secretCopies } = cloneClient(idp.clients[index]);
+	copy.name = `${copy.name} (copy)`;
+	idp.clients.splice(index + 1, 0, copy);
 	return { copy, secretCopies };
 }
 
@@ -61,16 +96,12 @@ export function duplicateIdp(
 ): { copy: Idp; secretCopies: SecretCopy[] } {
 	const index = ws.idps.findIndex((i) => i.id === idpId);
 	if (index < 0) throw new Error(`IdP not found: ${idpId}`);
-	const source = ws.idps[index];
-	const copy = jsonClone(source);
+	const copy = jsonClone(ws.idps[index]);
 	copy.id = newId();
 	copy.name = `${copy.name} (copy)`;
 	const secretCopies: SecretCopy[] = [];
-	if (source.client.hasSecret) {
-		secretCopies.push({ from: clientSecretKey(source.id), to: clientSecretKey(copy.id) });
-	}
-	copy.flows = source.flows.map((flow) => {
-		const cloned = cloneFlow(flow);
+	copy.clients = ws.idps[index].clients.map((client) => {
+		const cloned = cloneClient(client);
 		secretCopies.push(...cloned.secretCopies);
 		return cloned.copy;
 	});
@@ -78,20 +109,33 @@ export function duplicateIdp(
 	return { copy, secretCopies };
 }
 
+/** Keychain keys holding the secrets of `client` (its secret and its flows' passwords). */
+function clientSecretKeys(client: Client): string[] {
+	return [
+		...(client.hasSecret ? [clientSecretKey(client.id)] : []),
+		...client.flows.filter((f) => f.params.hasPassword).map((f) => passwordKey(f.id))
+	];
+}
+
 /** Removes the flow; returns the keychain keys that held its secrets. */
-export function deleteFlow(idp: Idp, flowId: string): string[] {
-	const index = idp.flows.findIndex((f) => f.id === flowId);
+export function deleteFlow(client: Client, flowId: string): string[] {
+	const index = client.flows.findIndex((f) => f.id === flowId);
 	if (index < 0) return [];
-	const [removed] = idp.flows.splice(index, 1);
+	const [removed] = client.flows.splice(index, 1);
 	return removed.params.hasPassword ? [passwordKey(removed.id)] : [];
+}
+
+/** Removes the client with its flows; returns the keychain keys that held their secrets. */
+export function deleteClient(idp: Idp, clientId: string): string[] {
+	const index = idp.clients.findIndex((c) => c.id === clientId);
+	if (index < 0) return [];
+	const [removed] = idp.clients.splice(index, 1);
+	return clientSecretKeys(removed);
 }
 
 export function deleteIdp(ws: Workspace, idpId: string): string[] {
 	const index = ws.idps.findIndex((i) => i.id === idpId);
 	if (index < 0) return [];
 	const [removed] = ws.idps.splice(index, 1);
-	return [
-		...(removed.client.hasSecret ? [clientSecretKey(removed.id)] : []),
-		...removed.flows.filter((f) => f.params.hasPassword).map((f) => passwordKey(f.id))
-	];
+	return removed.clients.flatMap(clientSecretKeys);
 }

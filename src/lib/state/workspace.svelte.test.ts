@@ -56,12 +56,13 @@ describe('WorkspaceStore', () => {
 	it('REQ-SEC-002 secret values go to the keychain; the workspace JSON only gets the flag; failures keep it false', async () => {
 		await store.init();
 		const idp = store.addIdp()!;
-		await store.setClientSecret(idp, 's3cret');
-		expect(idp.client.hasSecret).toBe(true);
-		expect(ipc.secrets.get(`idp:${idp.id}:client_secret`)).toBe('s3cret');
+		const client = store.addClient(idp.id)!;
+		await store.setClientSecret(client, 's3cret');
+		expect(client.hasSecret).toBe(true);
+		expect(ipc.secrets.get(`client:${client.id}:client_secret`)).toBe('s3cret');
 
 		ipc.failSecretSet = 'denied';
-		const flow = store.addFlow(idp.id, 'password')!;
+		const flow = store.addFlow(idp.id, client.id, 'password')!;
 		await store.setFlowPassword(flow, 'pw');
 		expect(flow.params.hasPassword).toBe(false);
 		expect(store.toast).toBe('Could not store secret in OS keychain: denied');
@@ -71,10 +72,11 @@ describe('WorkspaceStore', () => {
 	it('REQ-SEC-003 clearing a client secret deletes the entry and resets the flag', async () => {
 		await store.init();
 		const idp = store.addIdp()!;
-		await store.setClientSecret(idp, 's3cret');
-		await store.clearClientSecret(idp);
+		const client = store.addClient(idp.id)!;
+		await store.setClientSecret(client, 's3cret');
+		await store.clearClientSecret(client);
 		expect(ipc.secrets.size).toBe(0);
-		expect(idp.client.hasSecret).toBe(false);
+		expect(client.hasSecret).toBe(false);
 	});
 
 	it('REQ-WS-003 saveAs opens the new workspace and leaves an empty scratchpad', async () => {
@@ -86,5 +88,43 @@ describe('WorkspaceStore', () => {
 		expect(store.workspaces.map((w) => w.name)).toEqual(['Scratchpad', 'Saved']);
 		await store.open('scratchpad');
 		expect(store.current?.idps).toEqual([]);
+	});
+
+	it("REQ-WS-010 selecting an IdP selects its first client and that client's first flow", async () => {
+		await store.init();
+		const idp = store.addIdp()!;
+		const first = store.addClient(idp.id)!;
+		const flow = store.addFlow(idp.id, first.id, 'client_credentials')!;
+		const second = store.addClient(idp.id)!;
+		store.addFlow(idp.id, second.id, 'password');
+		store.selectIdp(idp.id);
+		expect(store.selection).toEqual({ idpId: idp.id, clientId: first.id, flowId: flow.id });
+	});
+
+	it("REQ-WS-010 selecting a client selects that client's first flow", async () => {
+		await store.init();
+		const idp = store.addIdp()!;
+		const first = store.addClient(idp.id)!;
+		store.addFlow(idp.id, first.id, 'client_credentials');
+		const second = store.addClient(idp.id)!;
+		const flow = store.addFlow(idp.id, second.id, 'password')!;
+		store.addFlow(idp.id, second.id, 'device_code');
+		store.selectClient(idp.id, second.id);
+		expect(store.selection).toEqual({ idpId: idp.id, clientId: second.id, flowId: flow.id });
+	});
+
+	it('REQ-WS-010 deleting a client clears its client secret and flow password from the keychain', async () => {
+		await store.init();
+		const idpId = store.addIdp()!.id;
+		const clientId = store.addClient(idpId)!.id;
+		store.addFlow(idpId, clientId, 'password');
+		// Re-read through the store: only reactive proxies carry the flags deleteClient relies on.
+		const idp = store.current!.idps[0];
+		await store.setClientSecret(idp.clients[0], 's3cret');
+		await store.setFlowPassword(idp.clients[0].flows[0], 'pw');
+		expect(ipc.secrets.size).toBe(2);
+		await store.deleteClient(idpId, clientId);
+		expect(ipc.secrets.size).toBe(0);
+		expect(idp.clients).toEqual([]);
 	});
 });

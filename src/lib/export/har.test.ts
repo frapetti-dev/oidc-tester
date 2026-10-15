@@ -10,6 +10,7 @@ function makeRun(): Run {
 		id: 'run-1',
 		workspaceId: 'scratchpad',
 		idpId: idp.id,
+		clientId: 'client-1',
 		flowId: flow.id,
 		flowSnapshot: flow,
 		idpSnapshot: idp,

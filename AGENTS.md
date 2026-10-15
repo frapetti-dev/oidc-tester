@@ -35,6 +35,7 @@ On Windows, cargo lives in `%USERPROFILE%\.cargo\bin`; add it to PATH if a shell
 - SPA via adapter-static (`fallback: 'index.html'`), `src/routes/+layout.ts`: `ssr = false`, `prerender = false`. Import library code via `#lib/...` (package.json `imports`) with explicit extensions (`.svelte`, `.svelte.js`, `.js`); `$lib` no longer exists (SvelteKit 3).
 - Svelte state: classes with runes in `src/lib/state/*.svelte.ts`; no stores. Persisted data validated with `zod` (`src/lib/model/schema.ts`, `schemaVersion: 1`). JWT/crypto via `jose` + WebCrypto.
 - Frontend calls Rust only through `src/lib/ipc/commands.ts` (types in `src/lib/ipc/types.ts`), never `invoke` directly.
+- Workspace tree: `Workspace → Idp → Client → Flow`. The IdP owns issuer, endpoints and HTTP settings; a client owns `clientId`, client auth and its keychain secret (`client:<clientId>:client_secret`); a flow lives in exactly one client and runs with it (`RunContext = { idp, client, flow }`).
 
 Folder map:
 

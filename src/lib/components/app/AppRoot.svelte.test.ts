@@ -2,6 +2,7 @@ import { page, userEvent } from 'vitest/browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { HttpExchange, HttpRequestSpec, HttpResult } from '#lib/ipc/types.js';
+import { FLOW_TYPE_LABELS, type FlowType } from '#lib/model/schema.js';
 import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '#lib/state/sections.svelte.js';
 import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
@@ -28,14 +29,13 @@ function reply(spec: HttpRequestSpec, status: number, body: unknown): HttpResult
 
 let ipc: MemoryIpc;
 
-async function addFlow(type: string) {
+async function addFlow(type: FlowType) {
 	await page.getByRole('button', { name: 'Add IdP' }).click();
-	await page.getByLabelText('Client ID').fill('fake-client');
 	await page.getByLabelText('Token endpoint', { exact: true }).fill('https://idp.test/token');
-	await page.getByRole('button', { name: /^More actions for/ }).click();
-	await page.getByRole('menuitem', { name: 'Add flow…' }).click();
-	await page.getByLabelText('Flow type').selectOptions(type);
-	await page.getByRole('button', { name: 'Add', exact: true }).click();
+	await page.getByRole('button', { name: 'Add client to New IdP' }).click();
+	await page.getByLabelText('Client ID').fill('fake-client');
+	await page.getByRole('button', { name: 'Add flow to New client' }).click();
+	await page.getByRole('menuitem', { name: FLOW_TYPE_LABELS[type], exact: true }).click();
 }
 
 function rightClick(element: Element) {
@@ -161,6 +161,32 @@ describe('app', () => {
 		await expect.element(drawer).not.toBeInTheDocument();
 	});
 
+	it('REQ-UI-016 client row opens the Client tab with Client ID; IdP tab has none; flow row shows the flow form', async () => {
+		ipc = createMemoryIpc();
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+		await addFlow('client_credentials');
+
+		await page.getByRole('button', { name: 'New client', exact: true }).click();
+		await expect
+			.element(page.getByRole('tab', { name: 'Client' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByLabelText('Client ID')).toBeVisible();
+
+		await page.getByRole('button', { name: 'New IdP', exact: true }).click();
+		await expect
+			.element(page.getByRole('tab', { name: 'IdP' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByLabelText('Token endpoint', { exact: true })).toBeVisible();
+		await expect.element(page.getByLabelText('Client ID')).not.toBeInTheDocument();
+
+		await page.getByRole('treeitem').first().click();
+		await expect
+			.element(page.getByRole('tab', { name: 'Flow' }))
+			.toHaveAttribute('aria-selected', 'true');
+		await expect.element(page.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
+	});
+
 	it('REQ-UI-011 IdP menu renames and adds flows', async () => {
 		ipc = createMemoryIpc();
 		await render(AppRoot, { ipc });
@@ -175,7 +201,7 @@ describe('app', () => {
 			.getByRole('menuitem')
 			.elements()
 			.map((el) => el.textContent?.trim());
-		expect(items).toEqual(['Add flow…', 'Duplicate', 'Rename…', 'Delete…']);
+		expect(items).toEqual(['Add client', 'Duplicate', 'Rename…', 'Delete…']);
 		await page.getByRole('menuitem', { name: 'Rename…' }).click();
 
 		const dialog = page.getByRole('dialog', { name: 'Rename IdP' });
@@ -184,6 +210,35 @@ describe('app', () => {
 		await expect
 			.element(page.getByRole('button', { name: 'Renamed IdP', exact: true }))
 			.toBeVisible();
+	});
+
+	it('REQ-UI-017 + buttons create a client and a typed flow without a confirmation dialog', async () => {
+		ipc = createMemoryIpc();
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+		await page.getByRole('button', { name: 'Add IdP' }).click();
+
+		await page.getByRole('button', { name: 'Add client to New IdP' }).click();
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: 'New client', exact: true }))
+			.toBeVisible();
+		await expect
+			.element(page.getByRole('tab', { name: 'Client' }))
+			.toHaveAttribute('aria-selected', 'true');
+
+		await page.getByRole('button', { name: 'Add flow to New client' }).click();
+		const labels = page
+			.getByRole('menuitem')
+			.elements()
+			.map((el) => el.textContent?.trim());
+		expect(labels).toEqual(Object.values(FLOW_TYPE_LABELS));
+		await page.getByRole('menuitem', { name: 'Device Code', exact: true }).click();
+		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('treeitem', { name: /Device Code/ })).toBeVisible();
+		await expect
+			.element(page.getByRole('tab', { name: 'Flow' }))
+			.toHaveAttribute('aria-selected', 'true');
 	});
 
 	it('REQ-UI-015 Run stays in view while the flow form scrolls', async () => {

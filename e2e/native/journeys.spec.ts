@@ -7,7 +7,7 @@ test.describe('native journeys (real Tauri app over CDP)', () => {
 	}) => {
 		const { page } = await launch();
 		await addIdp(page, { clientId: 'public-spa' });
-		await addFlow(page, 'New IdP', 'authorization_code_pkce');
+		await addFlow(page, 'New client', 'authorization_code_pkce');
 		await page.getByLabel('Redirect URI').fill('http://spoofed.invalid/cb');
 		await page.getByRole('button', { name: 'Add authorize param' }).click();
 		await page.getByLabel('Name 1').fill('mock_auto_approve');
@@ -29,8 +29,9 @@ test.describe('native journeys (real Tauri app over CDP)', () => {
 			auth: 'client_secret_basic',
 			secret: 'basic-secret'
 		});
+		await page.getByRole('button', { name: 'New IdP', exact: true }).click();
 		await page.getByLabel('Token endpoint', { exact: true }).fill('https://localhost:4456/token');
-		await addFlow(page, 'New IdP', 'client_credentials');
+		await addFlow(page, 'New client', 'client_credentials');
 		try {
 			await run(page);
 			await expect(resultTab(page, 'Errors')).toHaveAttribute('aria-selected', 'true');

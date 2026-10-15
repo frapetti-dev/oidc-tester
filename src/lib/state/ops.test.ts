@@ -1,18 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { newFlow, newIdp, newWorkspace } from '#lib/model/schema.js';
+import { newClient, newFlow, newIdp, newWorkspace } from '#lib/model/schema.js';
 import { createDebouncedSaver } from './autosave';
-import { addFlow, addIdp, deleteFlow, deleteIdp, duplicateFlow, duplicateIdp } from './ops';
+import {
+	addClient,
+	addFlow,
+	addIdp,
+	deleteClient,
+	deleteFlow,
+	deleteIdp,
+	duplicateClient,
+	duplicateFlow,
+	duplicateIdp
+} from './ops';
 
-describe('IdP and flow CRUD', () => {
+describe('IdP, client and flow CRUD', () => {
 	it('REQ-WS-009 adds an IdP and flows with factory defaults', () => {
 		const ws = newWorkspace('W');
 		const idp = addIdp(ws, 'Keycloak');
 		expect(ws.idps).toHaveLength(1);
 		expect(idp.name).toBe('Keycloak');
-		const flow = addFlow(idp, 'client_credentials');
-		expect(idp.flows).toEqual([flow]);
+		const client = addClient(idp);
+		const flow = addFlow(client, 'client_credentials');
+		expect(client.flows).toEqual([flow]);
 		expect(flow.params.scope).toBe('');
-		const pkce = addFlow(idp, 'authorization_code_pkce');
+		const pkce = addFlow(client, 'authorization_code_pkce');
 		expect(pkce.params).toMatchObject({
 			scope: 'openid profile email',
 			redirectUri: 'http://localhost:8080/callback',
@@ -21,33 +32,71 @@ describe('IdP and flow CRUD', () => {
 		expect(pkce.cleanSession).toBe(false);
 	});
 
-	it('REQ-WS-009 duplicating an IdP assigns new ids to the IdP and all flows, keeps content, and lists secrets to copy', () => {
+	it('REQ-WS-010 adds a client to an IdP with factory defaults', () => {
+		const idp = newIdp();
+		const client = addClient(idp);
+		expect(idp.clients).toEqual([client]);
+		expect(client).toMatchObject({
+			name: 'New client',
+			clientId: '',
+			auth: 'none',
+			jwtAlg: 'HS256',
+			hasSecret: false,
+			flows: []
+		});
+	});
+
+	it('REQ-WS-009 duplicating an IdP assigns new ids to the IdP, clients and flows, keeps content, and lists secrets to copy', () => {
 		const ws = newWorkspace('W');
 		const idp = addIdp(ws, 'Source');
-		idp.client.hasSecret = true;
+		const client = addClient(idp);
+		client.hasSecret = true;
 		idp.http.headers.push({ name: 'X', value: '1', enabled: true });
-		const flow = addFlow(idp, 'password');
+		const flow = addFlow(client, 'password');
 		flow.params.hasPassword = true;
 
 		const { copy, secretCopies } = duplicateIdp(ws, idp.id);
 
 		expect(ws.idps.map((i) => i.name)).toEqual(['Source', 'Source (copy)']);
 		expect(copy.id).not.toBe(idp.id);
-		expect(copy.flows[0].id).not.toBe(flow.id);
+		expect(copy.clients[0].id).not.toBe(client.id);
+		expect(copy.clients[0].flows[0].id).not.toBe(flow.id);
 		expect(copy.http.headers).toEqual(idp.http.headers);
 		expect(copy.http.headers).not.toBe(idp.http.headers);
 		expect(secretCopies).toEqual([
-			{ from: `idp:${idp.id}:client_secret`, to: `idp:${copy.id}:client_secret` },
+			{
+				from: `client:${client.id}:client_secret`,
+				to: `client:${copy.clients[0].id}:client_secret`
+			},
+			{ from: `flow:${flow.id}:password`, to: `flow:${copy.clients[0].flows[0].id}:password` }
+		]);
+	});
+
+	it('REQ-WS-010 duplicating a client copies its flows with new ids and lists secrets to copy', () => {
+		const idp = newIdp();
+		const client = addClient(idp, 'Src');
+		client.hasSecret = true;
+		const flow = addFlow(client, 'password');
+		flow.params.hasPassword = true;
+
+		const { copy, secretCopies } = duplicateClient(idp, client.id);
+
+		expect(idp.clients.map((c) => c.name)).toEqual(['Src', 'Src (copy)']);
+		expect(copy.id).not.toBe(client.id);
+		expect(copy.flows).toHaveLength(1);
+		expect(copy.flows[0].id).not.toBe(flow.id);
+		expect(secretCopies).toEqual([
+			{ from: `client:${client.id}:client_secret`, to: `client:${copy.id}:client_secret` },
 			{ from: `flow:${flow.id}:password`, to: `flow:${copy.flows[0].id}:password` }
 		]);
 	});
 
 	it('REQ-WS-009 duplicating a flow inserts a renamed copy with a new id', () => {
-		const idp = newIdp();
+		const client = newClient();
 		const flow = newFlow('authorization_code');
-		idp.flows.push(flow);
-		const { copy, secretCopies } = duplicateFlow(idp, flow.id);
-		expect(idp.flows.map((f) => f.name)).toEqual([
+		client.flows.push(flow);
+		const { copy, secretCopies } = duplicateFlow(client, flow.id);
+		expect(client.flows.map((f) => f.name)).toEqual([
 			'Authorization Code',
 			'Authorization Code (copy)'
 		]);
@@ -59,18 +108,52 @@ describe('IdP and flow CRUD', () => {
 		const ws = newWorkspace('W');
 		const keep = addIdp(ws, 'Keep');
 		const drop = addIdp(ws, 'Drop');
-		drop.client.hasSecret = true;
-		const flow = addFlow(drop, 'password');
+		const client = addClient(drop);
+		client.hasSecret = true;
+		const flow = addFlow(client, 'password');
 		flow.params.hasPassword = true;
-		const other = addFlow(drop, 'device_code');
+		const other = addFlow(client, 'device_code');
 
-		expect(deleteFlow(drop, other.id)).toEqual([]);
-		expect(deleteFlow(drop, flow.id)).toEqual([`flow:${flow.id}:password`]);
-		addFlow(drop, 'password').params.hasPassword = true;
+		expect(deleteFlow(client, other.id)).toEqual([]);
+		expect(deleteFlow(client, flow.id)).toEqual([`flow:${flow.id}:password`]);
+		addFlow(client, 'password').params.hasPassword = true;
 		const keys = deleteIdp(ws, drop.id);
 		expect(keys).toHaveLength(2);
-		expect(keys[0]).toBe(`idp:${drop.id}:client_secret`);
+		expect(keys[0]).toBe(`client:${client.id}:client_secret`);
 		expect(ws.idps).toEqual([keep]);
+	});
+
+	it('REQ-WS-010 deleting a client returns its client secret and flow password keys and removes it', () => {
+		const idp = newIdp();
+		const keep = addClient(idp, 'Keep');
+		const drop = addClient(idp, 'Drop');
+		drop.hasSecret = true;
+		const flow = addFlow(drop, 'password');
+		flow.params.hasPassword = true;
+		addFlow(drop, 'device_code');
+
+		expect(deleteClient(idp, drop.id)).toEqual([
+			`client:${drop.id}:client_secret`,
+			`flow:${flow.id}:password`
+		]);
+		expect(idp.clients).toEqual([keep]);
+	});
+
+	it('REQ-WS-010 deleting an IdP returns the secret keys across all its clients', () => {
+		const ws = newWorkspace('W');
+		const idp = addIdp(ws, 'Drop');
+		const a = addClient(idp);
+		a.hasSecret = true;
+		const b = addClient(idp);
+		b.hasSecret = true;
+		const flow = addFlow(b, 'password');
+		flow.params.hasPassword = true;
+
+		expect(deleteIdp(ws, idp.id)).toEqual([
+			`client:${a.id}:client_secret`,
+			`client:${b.id}:client_secret`,
+			`flow:${flow.id}:password`
+		]);
 	});
 });
 

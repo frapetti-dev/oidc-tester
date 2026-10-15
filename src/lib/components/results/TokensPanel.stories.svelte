@@ -20,6 +20,7 @@
 			id: 'run-1',
 			workspaceId: 'scratchpad',
 			idpId: 'idp-1',
+			clientId: 'client-1',
 			flowId: 'flow-1',
 			flowSnapshot: newFlow('authorization_code_pkce'),
 			idpSnapshot: newIdp(),

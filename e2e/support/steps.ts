@@ -20,7 +20,7 @@ export async function openSection(page: Page, title: string): Promise<void> {
 	if ((await header.getAttribute('aria-expanded')) === 'false') await header.click();
 }
 
-/** Adds an IdP, discovers its endpoints from the mock IdP, and fills the client. */
+/** Adds an IdP, discovers its endpoints from the mock IdP, then adds a client under it and fills it. */
 export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 	await page.getByRole('button', { name: 'Add IdP' }).click();
 	await page.getByLabel('Issuer', { exact: true }).fill(setup.issuer ?? MOCK_ISSUER);
@@ -30,6 +30,7 @@ export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 	}
 	await page.getByRole('button', { name: 'Discover' }).click();
 	await expect(page.getByLabel('Token endpoint', { exact: true })).not.toHaveValue('');
+	await page.getByRole('button', { name: 'Add client to New IdP' }).click();
 	await page.getByLabel('Client ID').fill(setup.clientId);
 	if (setup.auth) await page.getByLabel('Client authentication').selectOption(setup.auth);
 	if (setup.secret) {
@@ -38,12 +39,17 @@ export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 	}
 }
 
-/** Adds a flow of `type` to the IdP named `idpName` and selects it. */
-export async function addFlow(page: Page, idpName: string, type: string): Promise<void> {
-	await page.getByRole('button', { name: `More actions for ${idpName}` }).click();
-	await page.getByRole('menuitem', { name: 'Add flow…' }).click();
-	await page.getByLabel('Flow type').selectOption(type);
-	await page.getByRole('button', { name: 'Add', exact: true }).click();
+/** Menu labels of the flow types the journeys add (`FLOW_TYPE_LABELS` in the app). */
+const FLOW_LABELS: Record<string, string> = {
+	authorization_code_pkce: 'Authorization Code + PKCE',
+	client_credentials: 'Client Credentials',
+	device_code: 'Device Code'
+};
+
+/** Adds a flow of `type` to the client named `clientName` and selects it. */
+export async function addFlow(page: Page, clientName: string, type: string): Promise<void> {
+	await page.getByRole('button', { name: `Add flow to ${clientName}` }).click();
+	await page.getByRole('menuitem', { name: FLOW_LABELS[type], exact: true }).click();
 	await expect(page.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
 }
 

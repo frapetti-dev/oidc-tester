@@ -1,6 +1,6 @@
 import { SignJWT } from 'jose';
 import type { Header } from '#lib/ipc/types.js';
-import type { Idp } from '#lib/model/schema.js';
+import type { Client } from '#lib/model/schema.js';
 import type { RunError } from '#lib/model/run.js';
 
 export type Param = [name: string, value: string];
@@ -38,7 +38,7 @@ function missingSecret(auth: string): ClientAuthResult {
  */
 export async function applyClientAuth(
 	req: AuthRequestParts,
-	client: Idp['client'],
+	client: Client,
 	secret: string | null,
 	tokenEndpoint: string,
 	now: () => number = Date.now

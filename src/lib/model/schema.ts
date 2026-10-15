@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { migrateLegacyIdp } from './legacy';
 
 export const SCHEMA_VERSION = 1;
 export const SCRATCHPAD_ID = 'scratchpad';
@@ -86,22 +87,30 @@ export const FlowSchema = z.object({
 });
 export type Flow = z.infer<typeof FlowSchema>;
 
-export const IdpSchema = z.object({
+export const ClientSchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	issuer: z.string(),
-	discovery: z.record(z.string(), z.unknown()).nullable(),
-	discoveredAt: z.string().nullable(),
-	endpoints: EndpointsSchema,
-	client: z.object({
-		clientId: z.string(),
-		auth: ClientAuthSchema,
-		hasSecret: z.boolean(),
-		jwtAlg: z.enum(['HS256', 'HS384', 'HS512'])
-	}),
-	http: HttpSettingsSchema,
+	clientId: z.string(),
+	auth: ClientAuthSchema,
+	hasSecret: z.boolean(),
+	jwtAlg: z.enum(['HS256', 'HS384', 'HS512']),
 	flows: z.array(FlowSchema)
 });
+export type Client = z.infer<typeof ClientSchema>;
+
+export const IdpSchema = z.preprocess(
+	migrateLegacyIdp,
+	z.object({
+		id: z.string(),
+		name: z.string(),
+		issuer: z.string(),
+		discovery: z.record(z.string(), z.unknown()).nullable(),
+		discoveredAt: z.string().nullable(),
+		endpoints: EndpointsSchema,
+		http: HttpSettingsSchema,
+		clients: z.array(ClientSchema)
+	})
+);
 export type Idp = z.infer<typeof IdpSchema>;
 
 export const WorkspaceSchema = z.object({
@@ -189,6 +198,18 @@ export function newFlow(type: FlowType): Flow {
 	};
 }
 
+export function newClient(name = 'New client'): Client {
+	return {
+		id: newId(),
+		name,
+		clientId: '',
+		auth: 'none',
+		hasSecret: false,
+		jwtAlg: 'HS256',
+		flows: []
+	};
+}
+
 export function newIdp(name = 'New IdP'): Idp {
 	return {
 		id: newId(),
@@ -204,9 +225,8 @@ export function newIdp(name = 'New IdP'): Idp {
 			deviceAuthorization: '',
 			endSession: ''
 		},
-		client: { clientId: '', auth: 'none', hasSecret: false, jwtAlg: 'HS256' },
 		http: newHttpSettings(),
-		flows: []
+		clients: []
 	};
 }
 
@@ -220,8 +240,10 @@ export function newScratchpad(): Workspace {
 }
 
 export function secretKeys(ws: Workspace): string[] {
-	return ws.idps.flatMap((idp) => [
-		`idp:${idp.id}:client_secret`,
-		...idp.flows.map((f) => `flow:${f.id}:password`)
-	]);
+	return ws.idps.flatMap((idp) =>
+		idp.clients.flatMap((client) => [
+			`client:${client.id}:client_secret`,
+			...client.flows.map((f) => `flow:${f.id}:password`)
+		])
+	);
 }

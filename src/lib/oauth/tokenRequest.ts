@@ -1,6 +1,6 @@
 import type { Header, HttpRequestSpec, IpcApi } from '#lib/ipc/types.js';
 import type { RunError, Tokens, Validation } from '#lib/model/run.js';
-import type { Flow, Idp, KV } from '#lib/model/schema.js';
+import type { Client, Flow, Idp, KV } from '#lib/model/schema.js';
 import { applyClientAuth, type Param } from './clientAuth';
 import {
 	buildPreflightSpec,
@@ -23,6 +23,7 @@ export type Grant =
 
 export interface TokenRequestInput {
 	idp: Idp;
+	client: Client;
 	flow: Flow;
 	grant: Grant;
 	/** Client secret from the keychain; null when none is stored. */
@@ -94,14 +95,14 @@ export function withExtraParams(params: Param[], extra: KV[]): Param[] {
 
 /** Builds the token endpoint POST (form body, client auth, merged headers) for a grant. */
 export async function buildTokenRequest(input: TokenRequestInput): Promise<BuiltTokenRequest> {
-	const { idp, flow, grant, secret } = input;
+	const { idp, client, flow, grant, secret } = input;
 	const protocolHeaders: Header[] = [
 		['Content-Type', 'application/x-www-form-urlencoded'],
 		['Accept', 'application/json']
 	];
 	const auth = await applyClientAuth(
 		{ headers: protocolHeaders, params: grantParams(flow, grant) },
-		idp.client,
+		client,
 		secret,
 		idp.endpoints.token,
 		input.now

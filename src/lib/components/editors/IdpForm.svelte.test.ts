@@ -66,7 +66,6 @@ async function openNetwork() {
 async function mount() {
 	return await render(IdpForm, {
 		idp,
-		store,
 		ipc,
 		onDiscoveryResult: (r: DiscoveryOutcome) => results.push(r),
 		onclearsession: () => cleared++
@@ -122,34 +121,9 @@ describe('IdpForm', () => {
 		await expect.element(page.getByText('TLS validation disabled')).toBeVisible();
 	});
 
-	it('REQ-SEC-002 client secret field only appears for secret methods and saves to the keychain', async () => {
-		await mount();
-		await expect.element(page.getByLabelText('Client secret')).not.toBeInTheDocument();
-		await page.getByLabelText('Client authentication').selectOptions('client_secret_basic');
-		const field = page.getByLabelText('Client secret');
-		await field.fill('s3cret');
-		await page.getByLabelText('Client ID').click();
-		await vi.waitFor(() => expect(idp.client.hasSecret).toBe(true));
-		expect(ipc.secrets.get(`idp:${idp.id}:client_secret`)).toBe('s3cret');
-		expect(JSON.stringify(idp)).not.toContain('s3cret');
-	});
-
-	it('REQ-SEC-003 Clear removes the keychain entry', async () => {
-		await store.setClientSecret(idp, 'x');
-		idp.client.auth = 'client_secret_post';
-		await mount();
-		await page.getByRole('button', { name: 'Clear', exact: true }).click();
-		await vi.waitFor(() => expect(idp.client.hasSecret).toBe(false));
-		expect(ipc.secrets.has(`idp:${idp.id}:client_secret`)).toBe(false);
-	});
-
-	it('REQ-HTTP-003 edits proxy, timeout, origin, CORS check and headers; jwt alg only for client_secret_jwt', async () => {
+	it('REQ-HTTP-003 edits proxy, timeout, origin, CORS check and headers', async () => {
 		await mount();
 		await openNetwork();
-		await expect.element(page.getByLabelText('Assertion algorithm')).not.toBeInTheDocument();
-		await page.getByLabelText('Client authentication').selectOptions('client_secret_jwt');
-		await page.getByLabelText('Assertion algorithm').selectOptions('HS384');
-		expect(idp.client.jwtAlg).toBe('HS384');
 
 		await expect.element(page.getByLabelText('Proxy URL')).not.toBeInTheDocument();
 		await page.getByLabelText('Proxy', { exact: true }).selectOptions('url');
@@ -190,7 +164,7 @@ describe('IdpForm', () => {
 		await expect.element(page.getByText('TLS validation off')).not.toBeInTheDocument();
 		expect(localStorage.getItem('oidct.sections') ?? '').toContain('"idp.network":true');
 
-		for (const title of ['Provider', 'Endpoints', 'Client']) {
+		for (const title of ['Provider', 'Endpoints']) {
 			await expect
 				.element(page.getByRole('button', { name: title, exact: true }))
 				.toHaveAttribute('aria-expanded', 'true');

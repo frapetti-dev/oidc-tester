@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { migrateLegacyRun } from './legacy';
 import { FlowSchema, IdpSchema } from './schema';
 
 const HeaderSchema = z.tuple([z.string(), z.string()]);
@@ -85,23 +86,27 @@ export const TokensSchema = z.object({
 });
 export type Tokens = z.infer<typeof TokensSchema>;
 
-export const RunSchema = z.object({
-	id: z.string(),
-	workspaceId: z.string(),
-	idpId: z.string(),
-	flowId: z.string(),
-	flowSnapshot: FlowSchema,
-	idpSnapshot: IdpSchema,
-	startedAt: z.string(),
-	finishedAt: z.string(),
-	status: z.enum(['success', 'error', 'cancelled']),
-	authorizeUrl: z.string().optional(),
-	navigations: z.array(z.object({ url: z.string(), at: z.string() })),
-	callback: CallbackResultSchema.optional(),
-	exchanges: z.array(HttpExchangeSchema),
-	failures: z.array(HttpFailureSchema),
-	tokens: TokensSchema.optional(),
-	error: RunErrorSchema.optional(),
-	validations: z.array(ValidationSchema)
-});
+export const RunSchema = z.preprocess(
+	migrateLegacyRun,
+	z.object({
+		id: z.string(),
+		workspaceId: z.string(),
+		idpId: z.string(),
+		clientId: z.string(),
+		flowId: z.string(),
+		flowSnapshot: FlowSchema,
+		idpSnapshot: IdpSchema,
+		startedAt: z.string(),
+		finishedAt: z.string(),
+		status: z.enum(['success', 'error', 'cancelled']),
+		authorizeUrl: z.string().optional(),
+		navigations: z.array(z.object({ url: z.string(), at: z.string() })),
+		callback: CallbackResultSchema.optional(),
+		exchanges: z.array(HttpExchangeSchema),
+		failures: z.array(HttpFailureSchema),
+		tokens: TokensSchema.optional(),
+		error: RunErrorSchema.optional(),
+		validations: z.array(ValidationSchema)
+	})
+);
 export type Run = z.infer<typeof RunSchema>;

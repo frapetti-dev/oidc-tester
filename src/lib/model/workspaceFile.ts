@@ -22,8 +22,11 @@ export function describeZodError(err: z.ZodError): string {
 function stripIdpSecrets(idp: Idp): Idp {
 	return {
 		...idp,
-		client: { ...idp.client, hasSecret: false },
-		flows: idp.flows.map((f) => ({ ...f, params: { ...f.params, hasPassword: false } }))
+		clients: idp.clients.map((client) => ({
+			...client,
+			hasSecret: false,
+			flows: client.flows.map((f) => ({ ...f, params: { ...f.params, hasPassword: false } }))
+		}))
 	};
 }
 
@@ -45,22 +48,30 @@ export function withoutSecretFlags(
 	};
 }
 
-/** Fresh uuids for workspace, IdPs and flows; runs (and their snapshots) are re-pointed. */
+/** Fresh uuids for workspace, IdPs, clients and flows; runs (and their snapshots) are re-pointed. */
 export function withFreshIds(file: { workspace: Workspace; runs: Run[] }): {
 	workspace: Workspace;
 	runs: Run[];
 } {
 	const workspaceId = newId();
 	const idpIds = new Map<string, string>();
+	const clientIds = new Map<string, string>();
 	const flowIds = new Map<string, string>();
 	for (const idp of file.workspace.idps) {
 		idpIds.set(idp.id, newId());
-		for (const flow of idp.flows) flowIds.set(flow.id, newId());
+		for (const client of idp.clients) {
+			clientIds.set(client.id, newId());
+			for (const flow of client.flows) flowIds.set(flow.id, newId());
+		}
 	}
 	const remapIdp = (idp: Idp): Idp => ({
 		...idp,
 		id: idpIds.get(idp.id) ?? idp.id,
-		flows: idp.flows.map((f) => ({ ...f, id: flowIds.get(f.id) ?? f.id }))
+		clients: idp.clients.map((c) => ({
+			...c,
+			id: clientIds.get(c.id) ?? c.id,
+			flows: c.flows.map((f) => ({ ...f, id: flowIds.get(f.id) ?? f.id }))
+		}))
 	});
 	const now = new Date().toISOString();
 	return {
@@ -76,6 +87,7 @@ export function withFreshIds(file: { workspace: Workspace; runs: Run[] }): {
 			id: newId(),
 			workspaceId,
 			idpId: idpIds.get(r.idpId) ?? r.idpId,
+			clientId: clientIds.get(r.clientId) ?? r.clientId,
 			flowId: flowIds.get(r.flowId) ?? r.flowId,
 			idpSnapshot: remapIdp(r.idpSnapshot),
 			flowSnapshot: { ...r.flowSnapshot, id: flowIds.get(r.flowSnapshot.id) ?? r.flowSnapshot.id }

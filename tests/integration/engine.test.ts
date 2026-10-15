@@ -1,7 +1,16 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Run } from '#lib/model/run.js';
-import { newFlow, newIdp, type Flow, type FlowType, type Idp, type KV } from '#lib/model/schema.js';
+import {
+	newClient,
+	newFlow,
+	newIdp,
+	type Client,
+	type Flow,
+	type FlowType,
+	type Idp,
+	type KV
+} from '#lib/model/schema.js';
 import { executeRun, callUserInfo, type RunContext } from '#lib/run/engine.js';
 import { clientSecretKey, passwordKey } from '#lib/state/secrets.js';
 import { startMockIdp, type MockIdp } from '../mock-idp/server.ts';
@@ -27,6 +36,7 @@ afterEach(async () => {
 interface Setup {
 	ipc: NodeIpc;
 	idp: Idp;
+	client: Client;
 	flow: Flow;
 	ctx: (overrides?: Partial<RunContext>) => RunContext;
 }
@@ -38,7 +48,7 @@ function setup(
 	options: {
 		base?: MockIdp;
 		clientId?: string;
-		auth?: Idp['client']['auth'];
+		auth?: Client['auth'];
 		secret?: string;
 		tlsInsecure?: boolean;
 		approve?: boolean;
@@ -56,12 +66,14 @@ function setup(
 		endSession: `${base.url}/logout`
 	};
 	const auth = options.auth ?? 'none';
-	idp.client = {
+	const client = newClient('Mock client');
+	Object.assign(client, {
 		clientId: options.clientId ?? 'public-spa',
 		auth,
 		hasSecret: options.secret !== undefined,
 		jwtAlg: 'HS256'
-	};
+	});
+	idp.clients.push(client);
 	idp.http.proxy = { mode: 'none', url: '' };
 	idp.http.tlsInsecure = options.tlsInsecure ?? false;
 	const flow = newFlow(type);
@@ -70,19 +82,22 @@ function setup(
 		// Skip the login form; device flow sends extraAuthParams to the device endpoint.
 		flow.params.extraAuthParams = [kv('mock_auto_approve', '1')];
 	}
-	idp.flows.push(flow);
+	client.flows.push(flow);
 
 	const ipc = createNodeIpc();
 	created.push(ipc);
-	if (options.secret !== undefined) ipc.state.secrets.set(clientSecretKey(idp.id), options.secret);
+	if (options.secret !== undefined)
+		ipc.state.secrets.set(clientSecretKey(client.id), options.secret);
 	return {
 		ipc,
 		idp,
+		client,
 		flow,
 		ctx: (overrides = {}) => ({
 			ipc,
 			workspaceId: 'ws',
 			idp,
+			client,
 			flow,
 			signal: new AbortController().signal,
 			// The mock IdP enforces the polling interval (slow_down), so device polling waits for real.

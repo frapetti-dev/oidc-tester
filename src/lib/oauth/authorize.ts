@@ -1,5 +1,5 @@
 import type { RunError } from '#lib/model/run.js';
-import type { Flow, FlowParams, Idp } from '#lib/model/schema.js';
+import type { Client, Flow, FlowParams, Idp } from '#lib/model/schema.js';
 import { challenge, generateVerifier, randomToken } from './pkce';
 
 /** Per-run random inputs of the authorize request; the engine keeps them to validate the response. */
@@ -84,6 +84,7 @@ const validationError = (error: string, error_description: string): AuthorizeUrl
 /** Builds the front-channel authorization request URL (OIDC Core §3.1.2.1, RFC 7636, RFC 6749 §4). */
 export async function buildAuthorizeUrl(
 	idp: Idp,
+	client: Client,
 	flow: Flow,
 	generated: AuthorizeValues
 ): Promise<AuthorizeUrlResult> {
@@ -119,7 +120,7 @@ export async function buildAuthorizeUrl(
 
 	const query: Array<[string, string]> = [
 		['response_type', responseType],
-		['client_id', idp.client.clientId],
+		['client_id', client.clientId],
 		['redirect_uri', params.redirectUri],
 		['scope', params.scope],
 		['state', generated.state]
@@ -172,11 +173,12 @@ export async function buildAuthorizeUrl(
  */
 export async function previewAuthorizeUrl(
 	idp: Idp,
+	client: Client,
 	flow: Flow,
 	existing?: Partial<AuthorizeValues>
 ): Promise<AuthorizePreview> {
 	const values = generateAuthorizeValues(flow, existing);
-	const result = await buildAuthorizeUrl(idp, flow, values);
+	const result = await buildAuthorizeUrl(idp, client, flow, values);
 	return result.ok
 		? { ok: true, url: result.url, values }
 		: { ok: false, message: result.error.error_description ?? result.error.error, values };

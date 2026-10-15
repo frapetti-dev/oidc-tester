@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
-	import { newFlow, newIdp } from '#lib/model/schema.js';
+	import { newClient, newFlow, newIdp } from '#lib/model/schema.js';
 	import { createMemoryIpc } from '#lib/testing/memoryIpc.js';
 	import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
 	import FlowForm from './FlowForm.svelte';
@@ -10,13 +10,16 @@
 	const idp = newIdp('Demo');
 	idp.issuer = 'https://idp.example';
 	idp.endpoints.authorization = 'https://idp.example/authorize';
-	idp.client.clientId = 'demo-client';
+	const client = newClient('Demo client');
+	client.clientId = 'demo-client';
+	idp.clients.push(client);
 
 	const { Story } = defineMeta({
 		title: 'Editors/FlowForm',
 		component: FlowForm,
 		args: {
 			idp,
+			client,
 			flow: newFlow('authorization_code_pkce'),
 			store: new WorkspaceStore(ipc),
 			ipc,

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Button from './Button.svelte';
-	import SelectField from './SelectField.svelte';
 	import TextField from './TextField.svelte';
 
 	interface Props {
@@ -10,8 +9,6 @@
 		/** Shows a text input with this label; its value is passed to `onconfirm`. */
 		inputLabel?: string;
 		initialValue?: string;
-		/** Shows a select with these options (labelled `inputLabel`) instead of a text input. */
-		options?: { value: string; label: string }[];
 		confirmLabel?: string;
 		danger?: boolean;
 		onconfirm: (value: string) => void;
@@ -23,7 +20,6 @@
 		message,
 		inputLabel,
 		initialValue = '',
-		options,
 		confirmLabel = 'OK',
 		danger = false,
 		onconfirm
@@ -35,7 +31,7 @@
 	$effect(() => {
 		if (!dialog) return;
 		if (open && !dialog.open) {
-			value = options?.[0]?.value ?? initialValue;
+			value = initialValue;
 			dialog.showModal();
 		} else if (!open && dialog.open) {
 			dialog.close();
@@ -62,11 +58,7 @@
 		<h2 class="text-base font-semibold">{title}</h2>
 		{#if message}<p class="text-sm text-fg-muted">{message}</p>{/if}
 		{#if inputLabel !== undefined}
-			{#if options}
-				<SelectField label={inputLabel} bind:value {options} />
-			{:else}
-				<TextField label={inputLabel} bind:value />
-			{/if}
+			<TextField label={inputLabel} bind:value />
 		{/if}
 		<div class="flex justify-end gap-2">
 			<Button onclick={() => (open = false)}>Cancel</Button>
