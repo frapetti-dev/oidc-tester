@@ -112,6 +112,30 @@
 		outline: 2px solid var(--c-focus);
 		outline-offset: 2px;
 	}
+	/*
+	 * Minimal scrollbars: slim rounded ink thumb on a transparent track, stronger on hover.
+	 * WebView2 is Chromium; do not add `scrollbar-width`/`scrollbar-color` here, they disable these pseudo-elements.
+	 */
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	::-webkit-scrollbar-track,
+	::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background-color: color-mix(in srgb, var(--c-fg-muted) 40%, transparent);
+		background-clip: padding-box;
+		border: 3px solid transparent;
+		border-radius: 9999px;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background-color: color-mix(in srgb, var(--c-fg-muted) 70%, transparent);
+	}
+	::-webkit-scrollbar-thumb:active {
+		background-color: var(--c-fg-muted);
+	}
 	@media (prefers-reduced-motion: reduce) {
 		*,
 		*::before,
