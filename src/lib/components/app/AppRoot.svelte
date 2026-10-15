@@ -445,7 +445,7 @@
 					{@render sidebar()}
 				{/snippet}
 				{#snippet end()}
-					<SplitPane fixed="end" size={440} min={320} max={760} label="Resize results">
+					<SplitPane fixed="end" size={700} min={360} max={960} label="Resize results">
 						{#snippet start()}
 							{@render editor()}
 						{/snippet}
