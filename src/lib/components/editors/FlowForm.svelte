@@ -184,9 +184,12 @@
 	}}
 >
 	<div class="flex flex-col gap-3 pb-3">
-		<div class="flex flex-wrap items-center gap-2">
-			<Badge>{FLOW_TYPE_LABELS[flow.type]}</Badge>
-		</div>
+		{#if flow.name !== FLOW_TYPE_LABELS[flow.type]}
+			<!-- The type is otherwise only visible as the default name; show it once the flow is renamed. -->
+			<div class="flex flex-wrap items-center gap-2">
+				<Badge>{FLOW_TYPE_LABELS[flow.type]}</Badge>
+			</div>
+		{/if}
 
 		{#if deviceCode}
 			<section class="panel p-3" aria-label="Device code">
