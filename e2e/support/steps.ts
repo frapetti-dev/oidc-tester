@@ -23,7 +23,7 @@ export async function openSection(page: Page, title: string): Promise<void> {
 /** Adds an IdP, discovers its endpoints from the mock IdP, then adds a client under it and fills it. */
 export async function addIdp(page: Page, setup: IdpSetup): Promise<void> {
 	await page.getByRole('button', { name: 'Add IdP' }).click();
-	await page.getByLabel('Issuer', { exact: true }).fill(setup.issuer ?? MOCK_ISSUER);
+	await page.getByLabel('Issuer URL', { exact: true }).fill(setup.issuer ?? MOCK_ISSUER);
 	if (setup.tlsInsecure) {
 		await openSection(page, 'Network');
 		await page.getByRole('switch', { name: /Skip TLS validation/ }).click();

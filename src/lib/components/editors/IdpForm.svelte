@@ -100,10 +100,11 @@
 		<div class="flex items-end gap-2">
 			<div class="flex-1">
 				<TextField
-					label="Issuer"
+					label="Issuer URL"
 					mono
 					bind:value={idp.issuer}
 					placeholder="https://idp.example/realm"
+					aria-describedby="idp-issuer-hint"
 				/>
 			</div>
 			<Button
@@ -114,6 +115,11 @@
 				{discovering ? 'Discovering…' : 'Discover'}
 			</Button>
 		</div>
+		<p id="idp-issuer-hint" class="text-xs text-fg-muted">
+			Base URL of the identity provider (the <code class="font-mono">iss</code> value), without
+			<code class="font-mono">/.well-known/openid-configuration</code>. Discover reads the provider
+			metadata from it and fills the endpoints below.
+		</p>
 
 		{#if result && !result.ok}
 			<p class="text-xs text-danger" role="alert">

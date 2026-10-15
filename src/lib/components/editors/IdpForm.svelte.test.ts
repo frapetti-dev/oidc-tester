@@ -93,6 +93,17 @@ describe('IdpForm', () => {
 		expect(idp.endpoints.token).toBe(`${ISSUER}/token`);
 	});
 
+	it('REQ-UI-021 the Issuer URL textbox is described by a hint explaining what to enter', async () => {
+		await mount();
+		const field = page.getByRole('textbox', { name: 'Issuer URL', exact: true });
+		await expect.element(field).toHaveAttribute('placeholder', 'https://idp.example/realm');
+		await expect
+			.element(field)
+			.toHaveAccessibleDescription(
+				'Base URL of the identity provider (the iss value), without /.well-known/openid-configuration. Discover reads the provider metadata from it and fills the endpoints below.'
+			);
+	});
+
 	it('REQ-DISC-004 shows the issuer mismatch warning', async () => {
 		ipc.onHttpSend = async (spec) =>
 			respond(spec, 200, document({ issuer: 'https://other.example' }));

@@ -217,3 +217,14 @@ And when the user selects A again it shows A's newest run, or the run last opene
 And a run in progress is shown only while its flow is selected; switching away and back shows it again
 And a finished run switches the Results tab (REQ-ERR-003) only when its flow is selected
 And opening a History run of another flow selects that flow and opens the Flow editor tab; a run whose flow no longer exists is shown without changing the selection until the next flow switch
+
+### REQ-UI-021 Issuer field explains itself
+
+Status: Accepted
+
+Given the Provider section of the IdP tab
+When it renders
+Then the issuer textbox is labelled `Issuer URL` with placeholder `https://idp.example/realm`
+And a hint below the Discover row reads `Base URL of the identity provider (the iss value), without /.well-known/openid-configuration. Discover reads the provider metadata from it and fills the endpoints below.`
+And the textbox is described by that hint (`aria-describedby`)
+And the Discover button stays aligned with the textbox, not with the hint
