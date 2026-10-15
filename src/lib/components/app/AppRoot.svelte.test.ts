@@ -110,6 +110,29 @@ describe('app', () => {
 			.toHaveAttribute('aria-selected', 'true');
 	});
 
+	it("REQ-UI-020 switching flows shows each flow's last run or the empty state", async () => {
+		ipc = createMemoryIpc();
+		ipc.onHttpSend = async (spec) =>
+			reply(spec, 200, { access_token: 'opaque-access-token', token_type: 'Bearer' });
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+
+		await addFlow('client_credentials');
+		await page.getByRole('button', { name: 'Run', exact: true }).click();
+		await expect.element(page.getByText('opaque-access-token').first()).toBeVisible();
+
+		await page.getByRole('button', { name: 'Add flow to New client' }).click();
+		await page.getByRole('menuitem', { name: 'Device Code', exact: true }).click();
+		await expect
+			.element(page.getByRole('region', { name: 'Results' }).getByText('No run yet'))
+			.toBeVisible();
+
+		await page
+			.getByRole('treeitem', { name: new RegExp(FLOW_TYPE_LABELS.client_credentials) })
+			.click();
+		await expect.element(page.getByText('opaque-access-token').first()).toBeVisible();
+	});
+
 	it('REQ-UI-008 the titlebar indicator shows success after a run and reverts to idle after 2400ms', async () => {
 		ipc = createMemoryIpc();
 		ipc.onHttpSend = async (spec) =>

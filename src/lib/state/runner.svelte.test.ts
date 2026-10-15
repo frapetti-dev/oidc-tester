@@ -41,10 +41,11 @@ function setup(execute: (ctx: RunContext) => Promise<Run>) {
 	});
 	const idp = newIdp('Fake');
 	const flow = newFlow('client_credentials');
+	const other = newFlow('client_credentials');
 	const client = newClient('Fake client');
-	client.flows.push(flow);
+	client.flows.push(flow, other);
 	idp.clients.push(client);
-	return { ipc, repo, runner, idp, client, flow };
+	return { ipc, repo, runner, idp, client, flow, other };
 }
 
 describe('RunnerStore', () => {
@@ -77,6 +78,7 @@ describe('RunnerStore', () => {
 		const { repo, runner, idp, client, flow } = setup((ctx) =>
 			Promise.resolve(runFor(ctx, 'success', `2026-10-02T10:0${n++}:00.000Z`))
 		);
+		runner.showFlow(flow.id);
 		const a = await runner.start('ws1', idp, client, flow);
 		const b = await runner.start('ws1', idp, client, flow);
 
@@ -89,10 +91,60 @@ describe('RunnerStore', () => {
 		const { repo, runner, idp, client, flow } = setup((ctx) =>
 			Promise.resolve(runFor(ctx, 'error'))
 		);
+		runner.showFlow(flow.id);
 		const run = await runner.start('ws1', idp, client, flow);
 		await runner.remove('ws1', run!.id);
 		expect(runner.runs).toEqual([]);
 		expect(runner.shown).toBeNull();
 		expect(await repo.listRuns('ws1')).toEqual([]);
+	});
+
+	it('REQ-UI-020 shown run follows the selected flow and remembers the run opened from history', async () => {
+		let n = 0;
+		const { runner, idp, client, flow, other } = setup((ctx) =>
+			Promise.resolve(runFor(ctx, 'success', `2026-10-02T10:0${n++}:00.000Z`))
+		);
+		runner.showFlow(flow.id);
+		const a = await runner.start('ws1', idp, client, flow);
+		const b = await runner.start('ws1', idp, client, flow);
+
+		runner.showFlow(other.id);
+		expect(runner.shown).toBeNull();
+		runner.showFlow(flow.id);
+		expect(runner.shown?.id).toBe(b!.id);
+
+		runner.select(a!.id);
+		runner.showFlow(other.id);
+		runner.showFlow(flow.id);
+		expect(runner.shown?.id).toBe(a!.id);
+
+		const c = await runner.start('ws1', idp, client, flow);
+		expect(runner.shown?.id).toBe(c!.id);
+	});
+
+	it('REQ-UI-020 an in-progress run is shown only while its flow is selected', async () => {
+		let release: (run: Run) => void = () => {};
+		let partial: Run | null = null;
+		let finished: Run | null = null;
+		const { runner, idp, client, flow, other } = setup(
+			(ctx) =>
+				new Promise<Run>((resolve) => {
+					partial = runFor(ctx, 'success');
+					finished = runFor(ctx, 'success');
+					ctx.onProgress?.(partial);
+					release = () => resolve(finished!);
+				})
+		);
+		runner.showFlow(flow.id);
+		const started = runner.start('ws1', idp, client, flow);
+		expect(runner.shown?.id).toBe(partial!.id);
+		runner.showFlow(other.id);
+		expect(runner.shown).toBeNull();
+		runner.showFlow(flow.id);
+		expect(runner.shown?.id).toBe(partial!.id);
+
+		release(finished!);
+		await started;
+		expect(runner.shown?.id).toBe(finished!.id);
 	});
 });

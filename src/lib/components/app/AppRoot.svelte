@@ -134,6 +134,10 @@
 	});
 
 	$effect(() => {
+		runner.showFlow(flow?.id ?? null);
+	});
+
+	$effect(() => {
 		if (mode !== 'narrow') drawerOpen = false;
 	});
 
@@ -144,6 +148,19 @@
 
 	function findClient(idpId?: string, clientId?: string): Client | undefined {
 		return store.current?.idps.find((i) => i.id === idpId)?.clients.find((c) => c.id === clientId);
+	}
+
+	/** REQ-UI-020: opening a history run selects its flow when it still exists. */
+	function openRun(runId: string) {
+		const r = runner.runs.find((x) => x.id === runId);
+		if (!r) return;
+		if (findClient(r.idpId, r.clientId)?.flows.some((f) => f.id === r.flowId)) {
+			store.selectFlow(r.idpId, r.clientId, r.flowId);
+			runner.showFlow(r.flowId);
+			editorTab = 'flow';
+			drawerOpen = false;
+		}
+		runner.select(runId);
 	}
 
 	async function confirmDialog(value: string) {
@@ -205,7 +222,7 @@
 		const finished = await runner.start(store.current.id, target.idp, target.client, target.flow);
 		if (!finished) return;
 		const tab = tabForRun(finished);
-		if (tab) resultsTab = tab;
+		if (tab && finished.flowId === runner.flowId) resultsTab = tab;
 		outcome =
 			finished.status === 'success' ? 'success' : finished.status === 'error' ? 'error' : null;
 		window.clearTimeout(outcomeTimer);
@@ -408,7 +425,7 @@
 				{ipc}
 				run={runner.shown}
 				runs={idpRuns}
-				onselectrun={(id) => runner.select(id)}
+				onselectrun={openRun}
 				ondeleterun={(id) => void runner.remove(workspaceId, id)}
 				appVersion={pkg.version}
 			/>

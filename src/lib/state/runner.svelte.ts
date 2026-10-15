@@ -17,8 +17,23 @@ export interface RunnerDeps {
 export class RunnerStore {
 	running = $state(false);
 	deviceCode = $state<DeviceUserCode | null>(null);
+	/** Flow selected in the sidebar; the results panel shows its runs. */
+	flowId = $state<string | null>(null);
 	/** Run shown in the results panel. */
-	shown = $state<Run | null>(null);
+	shown = $derived.by((): Run | null => {
+		if (this.active && this.active.flowId === this.flowId) return this.active;
+		if (this.override) {
+			const opened = this.runs.find((r) => r.id === this.override);
+			if (opened) return opened;
+		}
+		if (!this.flowId) return null;
+		const pickedId = this.picked[this.flowId];
+		return (
+			this.runs.find((r) => r.id === pickedId) ??
+			this.runs.find((r) => r.flowId === this.flowId) ??
+			null
+		);
+	});
 	/** Runs of the open workspace, newest first. */
 	runs = $state<Run[]>([]);
 	userinfo = $state<unknown>(null);
@@ -27,6 +42,12 @@ export class RunnerStore {
 
 	private readonly deps: RunnerDeps;
 	private controller: AbortController | null = null;
+	/** In-progress run, reported by the engine. */
+	private active = $state<Run | null>(null);
+	/** flowId → runId opened from History. */
+	private picked = $state<Record<string, string>>({});
+	/** Run opened from History whose flow no longer exists. */
+	private override = $state<string | null>(null);
 
 	constructor(deps: RunnerDeps) {
 		this.deps = deps;
@@ -36,6 +57,8 @@ export class RunnerStore {
 	async start(workspaceId: string, idp: Idp, client: Client, flow: Flow): Promise<Run | null> {
 		if (this.running) return null;
 		this.running = true;
+		this.override = null;
+		delete this.picked[flow.id];
 		this.userinfo = null;
 		this.discoveryError = null;
 		const controller = new AbortController();
@@ -49,16 +72,17 @@ export class RunnerStore {
 			signal: controller.signal,
 			appVersion: this.deps.appVersion,
 			onDeviceCode: (info) => (this.deviceCode = info),
-			onProgress: (run) => (this.shown = run)
+			onProgress: (run) => (this.active = run)
 		};
 		try {
 			const run = await this.deps.execute(ctx);
 			await this.deps.repo.saveRun(run);
-			this.shown = run;
+			// The finished run is prepended to `runs` below; `shown` derives from it.
 			this.runs = [run, ...this.runs.filter((r) => r.id !== run.id)];
 			return run;
 		} finally {
 			this.running = false;
+			this.active = null;
 			this.deviceCode = null;
 			this.controller = null;
 		}
@@ -68,21 +92,32 @@ export class RunnerStore {
 		this.controller?.abort();
 	}
 
+	/** Selects the flow whose runs the results panel shows. */
+	showFlow(flowId: string | null): void {
+		if (flowId === this.flowId) return;
+		this.flowId = flowId;
+		this.override = null;
+		this.userinfo = null;
+	}
+
 	async loadRuns(workspaceId: string): Promise<void> {
 		this.runs = await this.deps.repo.listRuns(workspaceId);
-		this.shown = this.runs[0] ?? null;
+		this.picked = {};
+		this.override = null;
 		this.userinfo = null;
 	}
 
 	select(runId: string): void {
-		this.shown = this.runs.find((r) => r.id === runId) ?? this.shown;
+		const run = this.runs.find((r) => r.id === runId);
+		if (!run) return;
+		this.picked[run.flowId] = run.id;
+		this.override = run.flowId === this.flowId ? null : run.id;
 		this.userinfo = null;
 	}
 
 	async remove(workspaceId: string, runId: string): Promise<void> {
 		await this.deps.repo.deleteRun(workspaceId, runId);
 		this.runs = this.runs.filter((r) => r.id !== runId);
-		if (this.shown?.id === runId) this.shown = this.runs[0] ?? null;
 	}
 
 	/** Calls the UserInfo endpoint with the shown run's access token. */

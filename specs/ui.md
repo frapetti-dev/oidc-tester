@@ -205,3 +205,15 @@ Then a `Run` button with a play icon sits at the right end of the title row (the
 And while a run is active, `Run` is disabled and a `Cancel` button sits next to it
 And the Client and IdP tabs show no `Run` button
 And the `Run` button stays in view while the form scrolls
+
+### REQ-UI-020 Results follow the selected flow
+
+Status: Accepted
+
+Given a workspace with flows A and B where A has finished runs and B has none
+When the user selects B
+Then the Results panel shows `No run yet`
+And when the user selects A again it shows A's newest run, or the run last opened from History for A when that run still exists
+And a run in progress is shown only while its flow is selected; switching away and back shows it again
+And a finished run switches the Results tab (REQ-ERR-003) only when its flow is selected
+And opening a History run of another flow selects that flow and opens the Flow editor tab; a run whose flow no longer exists is shown without changing the selection until the next flow switch
