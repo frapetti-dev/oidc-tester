@@ -68,3 +68,12 @@ Status: Accepted
 Given an IdP with TLS, proxy, headers settings and a `jwks` endpoint
 When the JWKS is needed
 Then it is fetched once per run via `sendWithRedirects` using those settings, logged in the timeline, and a failed fetch gives result `jwks_unavailable`
+
+### REQ-JWT-009 Signature chip hides details until hovered
+
+Status: Accepted
+
+Given a JWS whose signature validation message is `Signature valid (RS256, kid key-1)`
+When `TokenView` renders
+Then the chip shows only the summary `Signature valid`, and the parenthesized details (`(RS256, kid key-1)`) become visible on hover or keyboard focus
+And clicking the chip writes the full message `Signature valid (RS256, kid key-1)` to the clipboard

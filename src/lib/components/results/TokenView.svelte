@@ -38,6 +38,15 @@
 	const inspected = $derived(inspectToken(token));
 	const segments = $derived(splitTokenSegments(token));
 	const signature = $derived(validations.find((validation) => validation.id === sigId));
+	// "Signature valid (RS256, kid abc)" -> summary + hover-only details.
+	let sigHover = $state(false);
+	const signatureParts = $derived.by(() => {
+		const message = signature?.message ?? 'Signature not checked';
+		const at = message.indexOf(' (');
+		return at < 0
+			? { summary: message, detail: '' }
+			: { summary: message.slice(0, at), detail: message.slice(at) };
+	});
 	const idTokenChecks = $derived(
 		sigId === 'sig.id_token'
 			? validations.filter((validation) => validation.id.startsWith('idt.'))
@@ -98,12 +107,22 @@
 		<span>{label}</span>
 		<span class="flex items-center gap-2 normal-case">
 			{#if inspected.kind === 'jws'}
-				<span
+				<button
+					type="button"
 					data-testid="sig-badge"
-					class={['badge', signature && SIGNATURE_CLASS[signature.level]]}
+					class={['badge cursor-pointer', signature && SIGNATURE_CLASS[signature.level]]}
+					aria-label={signature ? `${signature.message} (click to copy)` : undefined}
+					onclick={() => signature && contextMenu.copy(signature.message)}
+					onmouseenter={() => (sigHover = true)}
+					onmouseleave={() => (sigHover = false)}
+					onfocus={() => (sigHover = true)}
+					onblur={() => (sigHover = false)}
 				>
-					{signature ? signature.message : 'Signature not checked'}
-				</span>
+					{signatureParts.summary}{#if signatureParts.detail}<span
+							data-testid="sig-detail"
+							class={sigHover ? 'inline' : 'hidden'}>{signatureParts.detail}</span
+						>{/if}
+				</button>
 			{/if}
 			<Button variant="ghost" onclick={copyToken}>
 				{copyStatus === 'copied'

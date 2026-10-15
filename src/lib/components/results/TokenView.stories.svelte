@@ -94,17 +94,31 @@
 />
 
 <Story
-	name="Signature badge reports a valid signature"
+	name="REQ-JWT-009 Signature chip hides details until hovered and copies the full message on click"
+	parameters={{ req: ['REQ-JWT-009'] }}
 	args={{
 		token: validToken,
 		validations: [
 			{ id: 'sig.id_token', level: 'ok', message: 'Signature valid (RS256, kid key-1)' }
 		]
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ canvas, userEvent }) => {
 		const badge = canvas.getByTestId('sig-badge');
-		await expect(badge).toHaveTextContent('Signature valid (RS256, kid key-1)');
 		await expect(badge).toHaveClass('badge-success');
+		await expect(badge).toHaveTextContent('Signature valid');
+		const detail = canvas.getByTestId('sig-detail');
+		await expect(detail).toHaveTextContent('(RS256, kid key-1)');
+		await expect(detail).not.toBeVisible();
+		await userEvent.hover(badge);
+		await expect(detail).toBeVisible();
+		const writeText = fn(async () => {});
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		try {
+			await userEvent.click(badge);
+			await expect(writeText).toHaveBeenCalledWith('Signature valid (RS256, kid key-1)');
+		} finally {
+			Reflect.deleteProperty(navigator, 'clipboard');
+		}
 	}}
 />
 
