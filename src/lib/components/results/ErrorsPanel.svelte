@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { RunError, Validation } from '#lib/model/run.js';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import Badge from '#lib/components/ui/Badge.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import CodeView from '#lib/components/ui/CodeView.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import { hintForError } from './errorHints';
 	import ValidationList from './ValidationList.svelte';
 
@@ -19,7 +21,11 @@
 </script>
 
 {#if !error && problems.length === 0}
-	<p class="p-4 text-fg-muted">No errors</p>
+	<EmptyState
+		icon={ShieldCheck}
+		title="No errors"
+		description="Protocol errors and failed validations show up here."
+	/>
 {:else}
 	<div class="flex flex-col gap-3 p-3">
 		{#if error}

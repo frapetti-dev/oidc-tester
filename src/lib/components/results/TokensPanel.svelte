@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { Run } from '#lib/model/run.js';
+	import KeyRound from '@lucide/svelte/icons/key-round';
 	import Button from '#lib/components/ui/Button.svelte';
 	import CodeView from '#lib/components/ui/CodeView.svelte';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import TokenView from './TokenView.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
 
@@ -30,9 +32,13 @@
 </script>
 
 {#if !run}
-	<p class="p-4 text-fg-muted">No run yet</p>
+	<EmptyState
+		icon={KeyRound}
+		title="No run yet"
+		description="Run a flow to inspect its tokens here."
+	/>
 {:else if !tokens}
-	<p class="p-4 text-fg-muted">This run returned no tokens</p>
+	<EmptyState icon={KeyRound} title="This run returned no tokens" />
 {:else}
 	<div class="flex h-full min-h-0 flex-col">
 		{#if tokens.token_type || tokens.expires_in !== undefined || tokens.scope}

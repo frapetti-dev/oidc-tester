@@ -176,6 +176,7 @@ Three tabs: Tokens, Errors, Timeline. The panel uses `surface` while the editor 
 - **Tokens.** JWTs are split into header / payload / signature, colored with the JWT tokens, and the decoded header and payload sit side by side when the panel is wide enough (container query). Signature and ID-token validation results are listed with status color.
 - **Errors.** Protocol errors are shown with hints; the tab is selected automatically after a failed run and Tokens after a later success.
 - **Timeline.** One entry per HTTP exchange or navigation, method colored by `method-get` / `method-post`, with cURL and HAR export.
+- **Empty states.** `ui/EmptyState.svelte`: a bare 40px muted icon (no tile), a 16px medium title and an optional 14px description, all in `fg-muted` so they recede into the background, centered horizontally and vertically in the pane. The Timeline passes `fill={false}` so it sits inline above History instead of pushing it away.
 
 ## Accessibility
 

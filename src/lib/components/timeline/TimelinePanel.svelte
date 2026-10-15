@@ -3,9 +3,11 @@
 	import type { Run } from '#lib/model/run.js';
 	import { toCurl } from '#lib/export/curl.js';
 	import { toHar } from '#lib/export/har.js';
+	import ListTree from '@lucide/svelte/icons/list-tree';
 	import Badge from '#lib/components/ui/Badge.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { menu } from '#lib/components/ui/contextMenu.js';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import type { MenuEntry } from '#lib/components/ui/menu.js';
 	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import ExchangeDetail from './ExchangeDetail.svelte';
@@ -125,7 +127,12 @@
 	{/if}
 
 	{#if entries.length === 0}
-		<p class="text-sm text-fg-muted">No requests yet</p>
+		<EmptyState
+			icon={ListTree}
+			title="No requests yet"
+			description="Every request and redirect of a run is listed here."
+			fill={false}
+		/>
 	{:else}
 		<ul class="divide-y divide-border panel" aria-label="Timeline">
 			{#each entries as entry (all.indexOf(entry))}

@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import type { Component, Snippet } from 'svelte';
+	import KeyRound from '@lucide/svelte/icons/key-round';
+	import ListTree from '@lucide/svelte/icons/list-tree';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import EmptyState from '#lib/components/ui/EmptyState.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
 
 	interface Props {
@@ -18,10 +22,10 @@
 		{ id: 'timeline', label: 'Timeline' }
 	];
 	const content = $derived<Record<string, Snippet | undefined>>({ tokens, errors, timeline });
-	const EMPTY: Record<string, string> = {
-		tokens: 'No run yet',
-		errors: 'No errors',
-		timeline: 'No requests yet'
+	const EMPTY: Record<string, { icon: Component; title: string }> = {
+		tokens: { icon: KeyRound, title: 'No run yet' },
+		errors: { icon: ShieldCheck, title: 'No errors' },
+		timeline: { icon: ListTree, title: 'No requests yet' }
 	};
 </script>
 
@@ -32,7 +36,7 @@
 			{#if body}
 				{@render body()}
 			{:else}
-				<p class="p-6 text-center text-sm text-fg-muted">{EMPTY[id]}</p>
+				<EmptyState {...EMPTY[id]} />
 			{/if}
 		{/snippet}
 	</Tabs>
