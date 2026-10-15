@@ -152,10 +152,14 @@ And invalid JSON counts as `{}`
 
 Status: Accepted
 
-Given the flow editor
+Given a front-channel flow in the flow editor
 When its content scrolls
-Then `Run`/`Cancel` and (front-channel flows) the authorize URL preview with `Copy` sit in a bar stuck to the bottom of the editor's scroll area
+Then the authorize URL preview sits in a bar stuck to the bottom of the editor's scroll area
+And an icon-only `Copy` button (copy icon, accessible name `Copy`) sits to the left of the URL
+And the URL is one truncated line whose `title` (hover tooltip) is the full URL
+And there is no `Show full URL` control
 And the bar stays in view at any scroll position
+And back-channel flows render no bar
 
 ### REQ-UI-016 Sidebar tree IdP → client → flow
 
@@ -190,3 +194,14 @@ Then the summary (`token_type`, `expires_in`, `scope`) stays above a tab list la
 And the tab list has, in this order, `Access token`, `ID token`, `Refresh token` (each only when that token was returned), `UserInfo` (only when UserInfo can be called or a UserInfo response exists) and `Raw response` (always)
 And only the selected tab's content is shown; the first tab is selected by default
 And `Use refresh token` sits in the `Refresh token` tab and `Call UserInfo` in the `UserInfo` tab
+
+### REQ-UI-019 Run in the title row
+
+Status: Accepted
+
+Given the Flow tab of the flow editor
+When it renders
+Then a `Run` button with a play icon sits at the right end of the title row (the flow name heading), larger than the 32px default button
+And while a run is active, `Run` is disabled and a `Cancel` button sits next to it
+And the Client and IdP tabs show no `Run` button
+And the `Run` button stays in view while the form scrolls

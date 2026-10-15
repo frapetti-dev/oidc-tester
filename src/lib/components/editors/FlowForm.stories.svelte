@@ -26,31 +26,18 @@
 			runs: [],
 			running: false,
 			deviceCode: null,
-			onrun: fn(),
-			oncancel: fn()
+			onrun: fn()
 		}
 	});
 </script>
 
 <Story
 	name="PKCE flow shows verifier and authorize preview"
-	play={async ({ canvas, args, userEvent }) => {
+	play={async ({ canvas }) => {
 		await expect(await canvas.findByLabelText('Code verifier')).toBeVisible();
 		await expect(await canvas.findByTestId('authorize-preview')).toHaveTextContent(
 			'code_challenge_method=S256'
 		);
-		await userEvent.click(canvas.getByRole('button', { name: 'Run' }));
-		await expect(args.onrun).toHaveBeenCalledOnce();
-	}}
-/>
-
-<Story
-	name="Running shows Cancel and disables Run"
-	args={{ running: true, flow: newFlow('client_credentials') }}
-	play={async ({ canvas, args, userEvent }) => {
-		await expect(canvas.getByRole('button', { name: /Running/ })).toBeDisabled();
-		await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }));
-		await expect(args.oncancel).toHaveBeenCalledOnce();
 	}}
 />
 

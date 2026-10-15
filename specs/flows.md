@@ -102,7 +102,7 @@ Status: Accepted
 
 Given a run is in progress
 When the UI renders
-Then the Run button is disabled and a "Cancel" button is shown
+Then the Run button in the title row is disabled and a "Cancel" button is shown next to it
 And Cancel calls `auth_window_close`, aborts device polling and ends the run with status `cancelled`
 
 ### REQ-FLOW-013 Field matrix visibility

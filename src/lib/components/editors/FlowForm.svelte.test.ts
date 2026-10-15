@@ -1,4 +1,4 @@
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { newClient, type Client, type Flow, type FlowType, type Idp } from '#lib/model/schema.js';
@@ -37,7 +37,6 @@ interface Overrides {
 	running?: boolean;
 	deviceCode?: DeviceUserCode | null;
 	onrun?: () => void;
-	oncancel?: () => void;
 }
 
 async function mount(type: FlowType, over: Overrides = {}): Promise<Flow> {
@@ -52,8 +51,7 @@ async function mount(type: FlowType, over: Overrides = {}): Promise<Flow> {
 		runs: over.runs ?? [],
 		running: over.running ?? false,
 		deviceCode: over.deviceCode ?? null,
-		onrun: over.onrun ?? vi.fn(),
-		oncancel: over.oncancel ?? vi.fn()
+		onrun: over.onrun ?? vi.fn()
 	});
 	return flow;
 }
@@ -196,22 +194,13 @@ describe('FlowForm', () => {
 			runs,
 			running: false,
 			deviceCode: null,
-			onrun: vi.fn(),
-			oncancel: vi.fn()
+			onrun: vi.fn()
 		});
 		const picker = page.getByLabelText('Use from run');
 		expect((picker.element() as HTMLSelectElement).options).toHaveLength(2);
 		await picker.selectOptions((picker.element() as HTMLSelectElement).options[1].value);
 		await expect.element(page.getByLabelText('Refresh token')).toHaveValue('rt-abc');
 		expect(flow.params.refreshToken).toBe('rt-abc');
-	});
-
-	it('run bar: Run is disabled while running and Cancel appears', async () => {
-		const oncancel = vi.fn();
-		await mount('client_credentials', { running: true, oncancel });
-		await expect.element(page.getByRole('button', { name: /Running/ })).toBeDisabled();
-		await page.getByRole('button', { name: 'Cancel' }).click();
-		expect(oncancel).toHaveBeenCalledOnce();
 	});
 
 	it('REQ-UI-014 flow sections: Advanced is collapsed by default, omitted when empty, and counts set fields', async () => {
@@ -237,17 +226,50 @@ describe('FlowForm', () => {
 		expect(localStorage.getItem(SECTIONS_STORAGE_KEY) ?? '').toContain('"flow.advanced":true');
 	});
 
-	it('REQ-UI-015 the action bar keeps Run and the authorize preview together', async () => {
+	it('REQ-UI-015 the action bar sticks to the bottom and keeps the authorize preview with Copy', async () => {
 		await mount('authorization_code');
-		const run = page.getByRole('button', { name: 'Run', exact: true }).element();
-		const bar = run.parentElement!;
-		expect(getComputedStyle(bar).position).toBe('sticky');
+		let bar: Element | null = page.getByRole('button', { name: 'Copy' }).element();
+		while (bar && getComputedStyle(bar).position !== 'sticky') bar = bar.parentElement;
+		expect(bar).not.toBeNull();
 		await expect.element(preview()).toBeVisible();
-		expect(bar.contains(preview().element())).toBe(true);
-		expect(bar.contains(page.getByRole('button', { name: 'Copy' }).element())).toBe(true);
+		expect(bar!.contains(preview().element())).toBe(true);
+		expect(page.getByRole('button', { name: 'Run', exact: true }).query()).toBeNull();
+		const copy = page.getByRole('button', { name: 'Copy' }).element();
+		expect(copy.querySelector('svg')).not.toBeNull();
+		expect(copy.textContent?.trim()).toBe('');
+		const url = preview().element();
+		expect(copy.getBoundingClientRect().right).toBeLessThanOrEqual(
+			url.getBoundingClientRect().left
+		);
+		expect(url.getAttribute('title')).toBe(url.textContent?.trim());
+		expect(url.getAttribute('title')).toContain('response_type=code');
+		expect(page.getByRole('button', { name: /full URL/ }).query()).toBeNull();
+	});
 
-		await page.getByRole('button', { name: 'Show full URL' }).click();
-		await expect.element(page.getByRole('button', { name: 'Hide full URL' })).toBeVisible();
+	it('REQ-UI-015 back-channel flows render no action bar', async () => {
+		await mount('client_credentials');
+		const form = page.getByRole('form', { name: 'Flow settings' }).element();
+		const sticky = [...form.querySelectorAll('*')].some(
+			(el) => getComputedStyle(el).position === 'sticky'
+		);
+		expect(sticky).toBe(false);
+		expect(page.getByRole('button', { name: 'Copy' }).query()).toBeNull();
+	});
+
+	it('REQ-UI-019 Enter in a field runs the flow unless a run is active', async () => {
+		const onrun = vi.fn();
+		await mount('client_credentials', { onrun });
+		await page.getByLabelText('Name').click();
+		await userEvent.keyboard('{Enter}');
+		expect(onrun).toHaveBeenCalledOnce();
+	});
+
+	it('REQ-UI-019 Enter does not start a second run while running', async () => {
+		const onrun = vi.fn();
+		await mount('client_credentials', { running: true, onrun });
+		await page.getByLabelText('Name').click();
+		await userEvent.keyboard('{Enter}');
+		expect(onrun).not.toHaveBeenCalled();
 	});
 
 	it('run bar: shows the device user code, opens the verification URI and counts down', async () => {

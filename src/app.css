@@ -143,6 +143,10 @@
 	@apply size-8 px-0;
 }
 
+@utility btn-lg {
+	@apply h-10 gap-2 px-4 text-base;
+}
+
 @utility input-field {
 	@apply block h-8 w-full rounded-control border border-border bg-surface-raised px-2.5 py-0 text-sm text-fg placeholder:text-fg-muted focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 [&:is(input,textarea):read-only]:bg-surface-sunken;
 }

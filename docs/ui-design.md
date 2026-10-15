@@ -51,7 +51,7 @@ Repeated utility groups are `@utility` classes in `src/app.css`:
 
 | Class                                                            | Use                                                                                             |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `btn`, `btn-primary`, `btn-ghost`, `btn-danger`, `btn-icon`      | 32px buttons; `btn-icon` is a 32px square                                                       |
+| `btn`, `btn-primary`, `btn-ghost`, `btn-danger`, `btn-icon`      | 32px buttons; `btn-icon` is a 32px square; `btn-lg` makes a button 40px                         |
 | `input-field`                                                    | 32px text inputs and selects                                                                    |
 | `check-field`, `field-label`                                     | checkbox and field label                                                                        |
 | `field-grid`                                                     | one column, two columns once the container is at least `@md`. Used for side-by-side field pairs |
@@ -70,7 +70,8 @@ Repeated utility groups are `@utility` classes in `src/app.css`:
 |=== run indicator (2px) ===========================================|
 | Sidebar        | Flow editor (bounded 44rem)    | Results        |
 |                |                                | Tokens/Errors/ |
-|                | [sticky bar: preview, Run]     | Timeline       |
+|                | [title row: name ........ Run]| Timeline       |
+|                | [sticky bar: preview]          |                |
 +------------------------------------------------------------------+
 ```
 
@@ -139,7 +140,8 @@ A cancelled run goes straight to idle. With reduced motion the sweep stops and t
 
 - **State memory.** Open/closed state is global per section id (not per IdP or flow) and persists in `localStorage` key `oidct.sections` as `{ [sectionId]: boolean }`. Invalid JSON is treated as empty.
 - **Closed-section summaries.** A collapsed section keeps important state visible: Network shows a danger badge `TLS validation off`, `{n} headers`, `Origin set`; Advanced shows `{n} set`. Risky settings must never hide silently.
-- **Sticky action bar.** In the flow editor, `Run`/`Cancel` and, for front-channel flows, the authorize URL preview with `Copy` sit in a bar pinned to the bottom of the scroll area. The preview is one truncated line, expandable with `Show full URL`. Back-channel flows show no preview.
+- **Run in the title row.** On the Flow tab, `Run` (play icon, `btn-lg`, 40px) sits at the right end of the heading row; while a run is active it is disabled and `Cancel` appears next to it. Client and IdP tabs show no Run.
+- **Sticky action bar.** In the flow editor, front-channel flows pin the authorize URL preview in a bar at the bottom of the scroll area: icon-only `Copy` button, then the URL as one truncated line. Hovering the URL shows the full URL as a native tooltip (`title`). Back-channel flows show no bar.
 
 ## Context menus (REQ-UI-009 to 013)
 

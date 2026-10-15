@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Badge from '#lib/components/ui/Badge.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
+	import Check from '@lucide/svelte/icons/check';
+	import Copy from '@lucide/svelte/icons/copy';
 	import KeyValueEditor from '#lib/components/ui/KeyValueEditor.svelte';
 	import SecretField from '#lib/components/ui/SecretField.svelte';
 	import SelectField from '#lib/components/ui/SelectField.svelte';
@@ -38,7 +40,6 @@
 		/** Used to open the device verification URI in the system browser. */
 		ipc: IpcApi;
 		onrun: () => void;
-		oncancel: () => void;
 	}
 
 	let {
@@ -50,8 +51,7 @@
 		running,
 		deviceCode,
 		ipc,
-		onrun,
-		oncancel
+		onrun
 	}: Props = $props();
 
 	const uid = $props.id();
@@ -74,7 +74,6 @@
 	let kept: Partial<AuthorizeValues> | undefined;
 	let keptFlowId = '';
 	let copied = $state(false);
-	let previewExpanded = $state(false);
 
 	const hasAdvanced = $derived(
 		show.prompt ||
@@ -172,10 +171,14 @@
 	{/if}
 {/snippet}
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <form
 	class="@container flex max-w-[44rem] flex-col"
 	aria-label="Flow settings"
-	onsubmit={(event) => {
+	onsubmit={(event) => event.preventDefault()}
+	onkeydown={(event) => {
+		// No submit button lives in the form (Run is in the title row), so implicit submission is explicit.
+		if (event.key !== 'Enter' || !(event.target instanceof HTMLInputElement)) return;
 		event.preventDefault();
 		if (!running) onrun();
 	}}
@@ -416,18 +419,29 @@
 		</FormSection>
 	{/if}
 
-	<div
-		class="sticky -bottom-4 z-10 -mx-4 mt-2 -mb-4 flex flex-wrap items-center gap-2 border-t border-border bg-surface-raised px-4 py-2.5"
-	>
-		{#if frontChannel}
+	{#if frontChannel}
+		<div
+			class="sticky -bottom-4 z-10 -mx-4 mt-2 -mb-4 flex flex-wrap items-center gap-2 border-t border-border bg-surface-raised px-4 py-2.5"
+		>
 			<div class="flex min-w-0 flex-1 items-center gap-2">
+				<button
+					type="button"
+					class="btn btn-icon shrink-0 btn-ghost"
+					aria-label={copied ? 'Copied' : 'Copy'}
+					disabled={preview.url === null}
+					onclick={copyPreview}
+				>
+					{#if copied}
+						<Check size={16} aria-hidden="true" />
+					{:else}
+						<Copy size={16} aria-hidden="true" />
+					{/if}
+				</button>
 				{#if preview.url !== null}
 					<p
 						data-testid="authorize-preview"
-						class={[
-							'min-w-0 flex-1 font-mono text-xs',
-							previewExpanded ? 'break-all whitespace-normal' : 'truncate'
-						]}
+						title={preview.url}
+						class="min-w-0 flex-1 truncate font-mono text-xs"
 						{@attach menu(
 							() => [{ label: 'Copy', onselect: () => contextMenu.copy(preview.url ?? '') }],
 							'Authorize URL actions'
@@ -440,26 +454,7 @@
 				{:else}
 					<div class="flex-1"></div>
 				{/if}
-				<Button
-					variant="ghost"
-					aria-expanded={previewExpanded}
-					disabled={preview.url === null}
-					onclick={() => (previewExpanded = !previewExpanded)}
-				>
-					{previewExpanded ? 'Hide full URL' : 'Show full URL'}
-				</Button>
-				<Button variant="ghost" disabled={preview.url === null} onclick={copyPreview}>
-					{copied ? 'Copied' : 'Copy'}
-				</Button>
 			</div>
-		{:else}
-			<div class="flex-1"></div>
-		{/if}
-		{#if running}
-			<Button variant="danger" onclick={oncancel}>Cancel</Button>
-		{/if}
-		<Button variant="primary" type="submit" disabled={running}>
-			{running ? 'Running…' : 'Run'}
-		</Button>
-	</div>
+		</div>
+	{/if}
 </form>

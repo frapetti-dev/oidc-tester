@@ -4,6 +4,7 @@
 	import ClientForm from '#lib/components/editors/ClientForm.svelte';
 	import FlowForm from '#lib/components/editors/FlowForm.svelte';
 	import IdpForm, { type DiscoveryOutcome } from '#lib/components/editors/IdpForm.svelte';
+	import RunControls from '#lib/components/editors/RunControls.svelte';
 	import ErrorsPanel from '#lib/components/results/ErrorsPanel.svelte';
 	import TokensPanel from '#lib/components/results/TokensPanel.svelte';
 	import Drawer from '#lib/components/shell/Drawer.svelte';
@@ -362,10 +363,18 @@
 							running={runner.running}
 							deviceCode={runner.deviceCode}
 							onrun={() => void run()}
-							oncancel={() => runner.cancel()}
 						/>
 					{:else if id === 'client' && client}
 						<ClientForm {client} {store} />
+			{#snippet actions()}
+				{#if activeEditorTab === 'flow' && flow}
+					<RunControls
+						running={runner.running}
+						onrun={() => void run()}
+						oncancel={() => runner.cancel()}
+					/>
+				{/if}
+			{/snippet}
 					{:else}
 						<IdpForm {idp} {ipc} {onDiscoveryResult} onclearsession={clearSession} />
 					{/if}
