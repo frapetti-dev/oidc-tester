@@ -210,6 +210,28 @@ describe('app', () => {
 		await expect.element(page.getByRole('button', { name: 'Run', exact: true })).toBeVisible();
 	});
 
+	it('REQ-UI-019 Run sits at the right end of the title row on the Flow tab only', async () => {
+		ipc = createMemoryIpc();
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+		await addFlow('client_credentials');
+
+		const editor = page.getByRole('main', { name: 'Flow editor' });
+		const heading = editor.getByRole('heading').element();
+		const run = editor.getByRole('button', { name: 'Run', exact: true }).element();
+		expect(run.parentElement!.parentElement).toBe(heading.parentElement);
+		expect(run.querySelector('svg')).not.toBeNull();
+		expect(run.getBoundingClientRect().height).toBeGreaterThan(32);
+		const row = heading.parentElement!.getBoundingClientRect();
+		expect(run.getBoundingClientRect().left).toBeGreaterThan(heading.getBoundingClientRect().left);
+		expect(row.right - run.getBoundingClientRect().right).toBeLessThan(24);
+
+		await page.getByRole('tab', { name: 'Client' }).click();
+		await expect
+			.element(editor.getByRole('button', { name: 'Run', exact: true }))
+			.not.toBeInTheDocument();
+	});
+
 	it('REQ-UI-011 IdP menu renames and adds flows', async () => {
 		ipc = createMemoryIpc();
 		await render(AppRoot, { ipc });
@@ -233,28 +255,6 @@ describe('app', () => {
 		await expect
 			.element(page.getByRole('button', { name: 'Renamed IdP', exact: true }))
 			.toBeVisible();
-	it('REQ-UI-019 Run sits at the right end of the title row on the Flow tab only', async () => {
-		ipc = createMemoryIpc();
-		await render(AppRoot, { ipc });
-		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
-		await addFlow('client_credentials');
-
-		const editor = page.getByRole('main', { name: 'Flow editor' });
-		const heading = editor.getByRole('heading').element();
-		const run = editor.getByRole('button', { name: 'Run', exact: true }).element();
-		expect(run.parentElement!.parentElement).toBe(heading.parentElement);
-		expect(run.querySelector('svg')).not.toBeNull();
-		expect(run.getBoundingClientRect().height).toBeGreaterThan(32);
-		const row = heading.parentElement!.getBoundingClientRect();
-		expect(run.getBoundingClientRect().left).toBeGreaterThan(heading.getBoundingClientRect().left);
-		expect(row.right - run.getBoundingClientRect().right).toBeLessThan(24);
-
-		await page.getByRole('tab', { name: 'Client' }).click();
-		await expect
-			.element(editor.getByRole('button', { name: 'Run', exact: true }))
-			.not.toBeInTheDocument();
-	});
-
 	});
 
 	it('REQ-UI-017 + buttons create a client and a typed flow without a confirmation dialog', async () => {

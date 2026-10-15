@@ -367,6 +367,15 @@
 {#snippet editor()}
 	{#if idp}
 		<FlowEditor title={editorTitle}>
+			{#snippet actions()}
+				{#if activeEditorTab === 'flow' && flow}
+					<RunControls
+						running={runner.running}
+						onrun={() => void run()}
+						oncancel={() => runner.cancel()}
+					/>
+				{/if}
+			{/snippet}
 			<Tabs label="Editor" padded tabs={editorTabs} bind:active={editorTab}>
 				{#snippet panel(id)}
 					{#if id === 'flow' && flow && client}
@@ -383,15 +392,6 @@
 						/>
 					{:else if id === 'client' && client}
 						<ClientForm {client} {store} />
-			{#snippet actions()}
-				{#if activeEditorTab === 'flow' && flow}
-					<RunControls
-						running={runner.running}
-						onrun={() => void run()}
-						oncancel={() => runner.cancel()}
-					/>
-				{/if}
-			{/snippet}
 					{:else}
 						<IdpForm {idp} {ipc} {onDiscoveryResult} onclearsession={clearSession} />
 					{/if}
