@@ -50,12 +50,12 @@
 
 	/**
 	 * One selection rule for every level: the whole row is a rounded pill that is tinted on hover and
-	 * selection, and only the deepest selected row also gets a 2px ink indicator inside its left edge.
+	 * selection, and only the deepest selected row also gets a 2px accent indicator inside its left edge.
 	 */
 	const ROW =
 		'group relative flex items-center gap-0.5 rounded-control pr-1 hover:bg-surface-sunken';
 	const SELECTED =
-		'bg-surface-sunken [&>.btn]:opacity-100 before:absolute before:inset-y-1.5 before:left-0.5 before:w-0.5 before:rounded-full before:bg-fg';
+		'bg-surface-sunken [&>.btn]:opacity-100 before:absolute before:inset-y-1.5 before:left-0.5 before:w-0.5 before:rounded-full before:bg-accent';
 	const ROW_BUTTON = 'min-w-0 flex-1 cursor-pointer rounded-control text-left';
 	/** Containment line: indents the children of a row and draws a 1px rule down their left side. */
 	const CHILDREN = 'border-l border-border';

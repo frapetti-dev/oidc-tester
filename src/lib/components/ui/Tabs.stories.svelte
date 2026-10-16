@@ -56,3 +56,19 @@
 		);
 	}}
 />
+
+<Story
+	name="REQ-UI-022 active tab underline uses accent"
+	parameters={{ req: ['REQ-UI-022'] }}
+	args={{ panel }}
+	play={async ({ canvas }) => {
+		const tab = canvas.getByRole('tab', { selected: true });
+		const probe = document.createElement('div');
+		probe.style.backgroundColor = 'var(--c-accent)';
+		document.body.append(probe);
+		await expect(getComputedStyle(tab).borderBottomColor).toBe(
+			getComputedStyle(probe).backgroundColor
+		);
+		probe.remove();
+	}}
+/>

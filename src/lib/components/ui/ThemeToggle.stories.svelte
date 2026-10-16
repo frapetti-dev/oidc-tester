@@ -29,3 +29,18 @@
 		await expect(isDark()).toBe(matchMedia('(prefers-color-scheme: dark)').matches);
 	}}
 />
+
+<Story
+	name="REQ-UI-022 selected option uses accent"
+	parameters={{ req: ['REQ-UI-022'] }}
+	play={async ({ canvas, userEvent }) => {
+		await userEvent.click(canvas.getByRole('radio', { name: 'Dark' }));
+		const label = canvas.getByRole('radio', { name: 'Dark' }).closest('label')!;
+		const probe = document.createElement('div');
+		probe.style.color = 'var(--c-accent)';
+		document.body.append(probe);
+		await expect(getComputedStyle(label).color).toBe(getComputedStyle(probe).color);
+		probe.remove();
+		await userEvent.click(canvas.getByRole('radio', { name: 'System' }));
+	}}
+/>

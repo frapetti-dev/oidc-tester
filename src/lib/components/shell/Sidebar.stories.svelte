@@ -73,6 +73,22 @@
 />
 
 <Story
+	name="REQ-UI-022 selected row indicator uses accent"
+	parameters={{ req: ['REQ-UI-022'] }}
+	args={{ idps: MOCK_IDPS, selectedIdpId: 'i1', selectedClientId: 'c1', selectedFlowId: 'f2' }}
+	play={async ({ canvas }) => {
+		const row = canvas.getByRole('treeitem', { name: /Service/ }).parentElement!;
+		const probe = document.createElement('div');
+		probe.style.backgroundColor = 'var(--c-accent)';
+		document.body.append(probe);
+		await expect(getComputedStyle(row, '::before').backgroundColor).toBe(
+			getComputedStyle(probe).backgroundColor
+		);
+		probe.remove();
+	}}
+/>
+
+<Story
 	name="REQ-UI-011 row menu via More actions button"
 	parameters={{ req: ['REQ-UI-011'] }}
 	args={{

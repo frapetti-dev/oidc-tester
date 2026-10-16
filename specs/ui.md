@@ -182,7 +182,7 @@ Then a client named `New client` is created under that IdP and selected, with no
 When the user clicks `Add flow to {client}` on a client row
 Then a menu lists every flow type by its label; choosing one creates that flow under the client and selects it, with no confirmation dialog, and the Flow tab opens
 And the IdP row shows no counter
-And hover and selection tint the whole row with rounded corners; only the deepest selected row shows the ink indicator at its left edge
+And hover and selection tint the whole row with rounded corners; only the deepest selected row shows the accent indicator at its left edge
 
 ### REQ-UI-018 Token sub-tabs
 
@@ -228,3 +228,13 @@ Then the issuer textbox is labelled `Issuer URL` with placeholder `https://idp.e
 And a hint below the Discover row reads `Base URL of the identity provider (the iss value), without /.well-known/openid-configuration. Discover reads the provider metadata from it and fills the endpoints below.`
 And the textbox is described by that hint (`aria-describedby`)
 And the Discover button stays aligned with the textbox, not with the hint
+
+### REQ-UI-022 Indigo accent on interactive chrome
+
+Status: Accepted
+
+Given the light or dark theme
+When the app renders
+Then `--c-accent` is `#4338ca` in light and `#a5b4fc` in dark, and `--c-focus` equals `--c-accent` in both
+And `--c-accent-fg` on `--c-accent` has a contrast ratio of at least 4.5:1 in both themes
+And the primary button background, the active tab underline, the selected sidebar row indicator, checked checkboxes and switches, and the selected theme option icon use `accent`

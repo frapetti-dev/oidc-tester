@@ -4,7 +4,7 @@ Design reference for the OIDC Tester desktop app. Behavior requirements (with ex
 
 ## Principles
 
-1. **Signal ink.** Chrome is monochrome ink on cool grey. Color appears only when it carries meaning: JWT parts, status, HTTP methods, danger, keyboard focus. If something is colored and means nothing, remove the color.
+1. **Signal ink.** Chrome is ink on cool grey; one indigo accent marks what you can act on and where you are (primary action, active tab, selection, checked controls, focus). Every other color carries meaning: JWT parts, status, HTTP methods, danger. If something is colored and means nothing, remove the color.
 2. **Tool, not dashboard.** The user is mid-debug. Dense but legible, no decoration, no marketing surfaces. The one bold element is the titlebar run indicator.
 3. **Every width works.** The app must stay usable down to 720x520. Layout adapts to the window instead of scrolling horizontally.
 4. **Bounded forms.** Fields never stretch across a wide window. Rarely used settings are collapsed by default and remember how the user left them.
@@ -21,14 +21,14 @@ All colors are semantic tokens defined in `src/app.css` (`:root` for light, `.da
 | Surfaces    | `surface`, `surface-raised`, `surface-sunken` | `surface` = window and results sheet, `surface-raised` = editor and cards, `surface-sunken` = hover, code blocks, read-only fields |
 | Text        | `fg`, `fg-muted`                              | primary and secondary text                                                                                                         |
 | Lines       | `border`                                      | every divider and outline                                                                                                          |
-| Action      | `accent`, `accent-fg`                         | primary button. Equals `fg` (ink), so the primary action is the darkest thing on screen                                            |
+| Action      | `accent`, `accent-fg`                         | indigo: primary button, active tab underline, selected row indicator, checked controls, selected theme option                      |
 | Status      | `danger`, `success`, `warning`, `info`        | outcomes, badges, validation                                                                                                       |
 | JWT         | `jwt-header`, `jwt-payload`, `jwt-signature`  | decoder segments, and the three run-indicator bars                                                                                 |
 | HTTP        | `method-get`, `method-post`                   | method labels in the timeline                                                                                                      |
-| Interaction | `focus`, `scrim`                              | focus ring and field focus border; modal and drawer backdrop                                                                       |
+| Interaction | `focus`, `scrim`                              | focus ring and field focus border (equals `accent`); modal and drawer backdrop                                                     |
 | Window      | `window-close`                                | close button hover (the only fixed red)                                                                                            |
 
-Light: surface `#ECEEF2`, raised `#FAFBFC`, ink `#1A1F2B`. Dark: surface `#1B1E25`, raised `#23272F`, ink `#E6E9EF`. Dark mode is the `.dark` class on `<html>`. Theme choice (System / Light / Dark) persists in `localStorage` key `oidct.theme`.
+Light: surface `#ECEEF2`, raised `#FAFBFC`, ink `#1A1F2B`. Dark: surface `#1B1E25`, raised `#23272F`, ink `#E6E9EF`. Accent: light `#4338CA`, dark `#A5B4FC`. Dark mode is the `.dark` class on `<html>`. Theme choice (System / Light / Dark) persists in `localStorage` key `oidct.theme`.
 
 ### Type
 
@@ -57,7 +57,7 @@ Repeated utility groups are `@utility` classes in `src/app.css`:
 | `field-grid`                                                     | one column, two columns once the container is at least `@md`. Used for side-by-side field pairs |
 | `panel`, `panel-header`, `badge`, `badge-success/danger/warning` | cards and status chips                                                                          |
 | `kv-grid`, `code-block`                                          | key/value editor and monospace blocks                                                           |
-| `tab`, `tab-active`                                              | tab strip with a 2px ink underline                                                              |
+| `tab`, `tab-active`                                              | tab strip with a 2px accent underline                                                           |
 | `menu`, `menu-item`                                              | context menu surface and rows                                                                   |
 
 ## Layout

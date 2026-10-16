@@ -23,7 +23,7 @@
 		{@const Icon = ICONS[option]}
 		<label
 			title={LABELS[option]}
-			class="grid size-7 cursor-pointer place-items-center rounded-control text-fg-muted select-none hover:text-fg has-checked:bg-surface-raised has-checked:text-fg has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-focus"
+			class="grid size-7 cursor-pointer place-items-center rounded-control text-fg-muted select-none hover:text-fg has-checked:bg-surface-raised has-checked:text-accent has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-focus"
 		>
 			<input
 				type="radio"

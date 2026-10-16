@@ -7,8 +7,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Signal ink: chrome is ink on cool grey; color appears only when it carries meaning
- * (JWT parts, status, HTTP methods, danger, keyboard focus).
+ * Signal ink: chrome is ink on cool grey; one indigo accent marks what you can act on and where you
+ * are (primary action, active tab, selection, checked controls, focus). Every other color carries
+ * meaning (JWT parts, status, HTTP methods, danger).
  * Raw values live in CSS variables so the `.dark` class can swap them at runtime.
  */
 :root {
@@ -18,8 +19,8 @@
 	--c-border: #cdd2db;
 	--c-fg: #1a1f2b;
 	--c-fg-muted: #5a6375;
-	--c-accent: #1a1f2b;
-	--c-accent-fg: #fafbfc;
+	--c-accent: #4338ca;
+	--c-accent-fg: #ffffff;
 	--c-danger: #b3261e;
 	--c-success: #1f7a4d;
 	--c-warning: #8a5300;
@@ -29,7 +30,7 @@
 	--c-jwt-signature: #0083b0;
 	--c-method-get: #1f7a4d;
 	--c-method-post: #2b5faa;
-	--c-focus: #2b5faa;
+	--c-focus: #4338ca;
 	--c-scrim: rgb(16 18 24 / 0.45);
 	--c-window-close: #c42b1c;
 	color-scheme: light;
@@ -42,7 +43,7 @@
 	--c-border: #343a46;
 	--c-fg: #e6e9ef;
 	--c-fg-muted: #9aa3b3;
-	--c-accent: #e6e9ef;
+	--c-accent: #a5b4fc;
 	--c-accent-fg: #1b1e25;
 	--c-danger: #ff8a80;
 	--c-success: #6fd49b;
@@ -53,7 +54,7 @@
 	--c-jwt-signature: #33c7f5;
 	--c-method-get: #6fd49b;
 	--c-method-post: #84b4f5;
-	--c-focus: #84b4f5;
+	--c-focus: #a5b4fc;
 	--c-scrim: rgb(0 0 0 / 0.55);
 	--c-window-close: #c42b1c;
 	color-scheme: dark;
@@ -220,7 +221,7 @@
 }
 
 @utility tab-active {
-	@apply border-fg text-fg;
+	@apply border-accent text-fg;
 }
 
 @utility field-grid {
