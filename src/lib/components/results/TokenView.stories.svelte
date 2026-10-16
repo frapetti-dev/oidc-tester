@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect, fn, waitFor, within } from 'storybook/test';
 	import TokenView from './TokenView.svelte';
 	import ContextMenuHost from '#lib/components/ui/ContextMenuHost.svelte';
 
@@ -18,9 +18,13 @@
 	const validPayload = {
 		iss: 'http://localhost:4455',
 		sub: 'alice',
-		aud: 'public-spa',
+		aud: ['public-spa', 'api'],
 		exp: NOW_SECONDS + 3540,
 		iat: NOW_SECONDS - 60,
+		scope: 'openid profile custom:read',
+		amr: ['pwd', 'mfa'],
+		email_verified: true,
+		address: { country: 'IT' },
 		custom_claim: 'x'
 	};
 	const validToken = jws(validPayload);
@@ -55,31 +59,39 @@
 />
 
 <Story
-	name="REQ-JWT-003 Claims table shows descriptions and no description for unknown claims"
+	name="REQ-JWT-003 Claim labels and descriptions in an info tooltip"
 	parameters={{ req: ['REQ-JWT-003'] }}
 	args={{ token: validToken }}
-	play={async ({ canvas }) => {
+	play={async ({ canvas, userEvent }) => {
+		const headers = canvas.getAllByRole('columnheader').map((el) => el.textContent?.trim());
+		await expect(headers).toEqual(['Claim', 'Label', 'Value', 'Actions']);
+		await expect(canvas.queryByRole('columnheader', { name: 'Description' })).toBeNull();
 		const rows = canvas.getAllByTestId('claim-row');
-		const row = (name: string) => rows.find((el) => el.dataset.claim === name);
-		await expect(row('iss')).toHaveTextContent(
+		const row = (name: string) => rows.find((el) => el.dataset.claim === name) as HTMLElement;
+		const label = (name: string) => row(name).querySelector('[data-testid="claim-label"]');
+		await expect(label('scope')).toHaveTextContent('Scopes');
+		await expect(label('exp')).toHaveTextContent('Expires');
+		await expect(label('custom_claim')?.textContent).toBe('');
+		await userEvent.hover(canvas.getByRole('button', { name: 'About iss' }));
+		await expect(canvas.getByRole('tooltip')).toHaveTextContent(
 			'Issuer: identifies the party that issued the token'
 		);
+		await expect(canvas.queryByRole('button', { name: 'About custom_claim' })).toBeNull();
 		await expect(row('iss')).toHaveTextContent('http://localhost:4455');
-		await expect(row('custom_claim')).toHaveTextContent('x');
-		await expect(
-			row('custom_claim')?.querySelector('[data-testid="claim-description"]')
-		).toBeNull();
 	}}
 />
 
 <Story
-	name="REQ-JWT-004 Future expiry is rendered relative"
+	name="REQ-JWT-004 Future expiry is rendered as a date with a relative badge"
 	parameters={{ req: ['REQ-JWT-004'] }}
 	args={{ token: validToken }}
 	play={async ({ canvas }) => {
 		const exp = canvas.getAllByTestId('claim-row').find((el) => el.dataset.claim === 'exp');
-		await expect(exp).toHaveTextContent('in 59 min');
-		await expect(exp).toHaveTextContent(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}/);
+		const badge = within(exp as HTMLElement).getByText('expires in 59 min');
+		await expect(badge).toHaveClass('badge-success');
+		await expect(exp?.querySelector('time')?.getAttribute('datetime')).toMatch(
+			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/
+		);
 	}}
 />
 
@@ -89,7 +101,33 @@
 	args={{ token: expiredToken }}
 	play={async ({ canvas }) => {
 		const exp = canvas.getAllByTestId('claim-row').find((el) => el.dataset.claim === 'exp');
-		await expect(exp).toHaveTextContent('expired 3 min ago');
+		await expect(within(exp as HTMLElement).getByText('expired 3 min ago')).toHaveClass(
+			'badge-danger'
+		);
+	}}
+/>
+
+<Story
+	name="REQ-JWT-010 Scopes, amr, arrays, objects and verified flags are parsed"
+	parameters={{ req: ['REQ-JWT-010'] }}
+	args={{ token: validToken }}
+	play={async ({ canvas }) => {
+		const row = (name: string) =>
+			within(
+				canvas.getAllByTestId('claim-row').find((el) => el.dataset.claim === name) as HTMLElement
+			);
+		const scopes = row('scope').getAllByRole('listitem');
+		await expect(scopes.map((el) => el.querySelector('span')?.textContent)).toEqual([
+			'openid',
+			'profile',
+			'custom:read'
+		]);
+		await expect(scopes[0]).toHaveTextContent('Sign-in with OpenID Connect');
+		await expect(scopes[2].querySelector('[data-testid="claim-item-description"]')).toBeNull();
+		await expect(row('amr').getAllByRole('listitem')[0]).toHaveTextContent(/pwd\s*Password/);
+		await expect(row('aud').getAllByRole('listitem')).toHaveLength(2);
+		await expect(row('address').getByText(/"country": "IT"/).tagName).toBe('PRE');
+		await expect(row('email_verified').getByText('verified')).toHaveClass('badge-success');
 	}}
 />
 
@@ -242,6 +280,37 @@
 			await userEvent.click(await canvas.findByRole('menuitem', { name: 'Copy value' }));
 			await expect(writeText).toHaveBeenCalledTimes(1);
 			await expect(writeText).toHaveBeenCalledWith('alice');
+		} finally {
+			Reflect.deleteProperty(navigator, 'clipboard');
+		}
+	}}
+>
+	{#snippet template(args)}
+		<TokenView {...args} />
+		<ContextMenuHost />
+	{/snippet}
+</Story>
+
+<Story
+	name="REQ-JWT-011 Copy button copies the raw value"
+	parameters={{ req: ['REQ-JWT-011'] }}
+	args={{ token: validToken }}
+	play={async ({ canvas, userEvent }) => {
+		const writeText = fn(async () => {});
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		try {
+			const expButton = canvas.getByRole('button', { name: 'Copy exp value' });
+			// Synthetic pointer events do not set CSS :hover, so reveal via focus-within.
+			await expect(getComputedStyle(expButton).opacity).toBe('0');
+			expButton.focus();
+			await waitFor(() => expect(getComputedStyle(expButton).opacity).toBe('1'));
+			await userEvent.click(expButton);
+			await expect(writeText).toHaveBeenLastCalledWith(String(NOW_SECONDS + 3540));
+			await userEvent.click(canvas.getByRole('button', { name: 'Copy scope value' }));
+			await expect(writeText).toHaveBeenLastCalledWith('openid profile custom:read');
+			await userEvent.click(canvas.getByRole('button', { name: 'Copy sub value' }));
+			await expect(writeText).toHaveBeenLastCalledWith('alice');
+			await expect(await canvas.findByText('Copied')).toBeVisible();
 		} finally {
 			Reflect.deleteProperty(navigator, 'clipboard');
 		}
