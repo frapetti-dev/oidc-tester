@@ -238,3 +238,14 @@ When the app renders
 Then `--c-accent` is `#4338ca` in light and `#a5b4fc` in dark, and `--c-focus` equals `--c-accent` in both
 And `--c-accent-fg` on `--c-accent` has a contrast ratio of at least 4.5:1 in both themes
 And the primary button background, the active tab underline, the selected sidebar row indicator, checked checkboxes and switches, and the selected theme option icon use `accent`
+
+### REQ-UI-023 JSON syntax highlighting
+
+Status: Accepted
+
+Given a code block showing JSON (CodeView with a JSON value, a timeline JSON body, a JSON claim value)
+When it renders
+Then each token is wrapped in a span with `data-token` set to `key` (object member name incl. quotes), `string`, `number`, `literal` (`true`, `false`, `null`) or `punct` (`{ } [ ] , :`)
+And keys, strings, numbers and literals use the `json-key`, `json-string`, `json-number`, `json-literal` color tokens and punctuation uses `fg-muted`; whitespace is unwrapped text
+And the block's text content equals the unhighlighted pretty-printed JSON
+And non-JSON text in CodeView is shown verbatim without token spans

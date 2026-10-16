@@ -1,14 +1,17 @@
 <script module lang="ts">
 	/** Pretty-prints objects and JSON strings; any other text is shown verbatim. */
-	function format(value: unknown): string {
-		if (value === undefined) return '';
-		if (typeof value !== 'string') return JSON.stringify(value, null, 2) ?? String(value);
+	function format(value: unknown): { text: string; json: boolean } {
+		if (value === undefined) return { text: '', json: false };
+		if (typeof value !== 'string') {
+			const s = JSON.stringify(value, null, 2);
+			return s === undefined ? { text: String(value), json: false } : { text: s, json: true };
+		}
 		const trimmed = value.trimStart();
-		if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
+		if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return { text: value, json: false };
 		try {
-			return JSON.stringify(JSON.parse(value), null, 2);
+			return { text: JSON.stringify(JSON.parse(value), null, 2), json: true };
 		} catch {
-			return value;
+			return { text: value, json: false };
 		}
 	}
 </script>
@@ -16,11 +19,13 @@
 <script lang="ts">
 	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import Button from './Button.svelte';
+	import JsonHighlight from './JsonHighlight.svelte';
 	import { menu } from './contextMenu';
 
 	let { value }: { value: unknown } = $props();
 
-	const text = $derived(format(value));
+	const formatted = $derived(format(value));
+	const text = $derived(formatted.text);
 	let status = $state<'idle' | 'copied' | 'failed'>('idle');
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -43,7 +48,7 @@
 		{@attach menu(
 			() => [{ label: 'Copy', onselect: () => contextMenu.copy(text) }],
 			'Code actions'
-		)}>{text}</pre>
+		)}>{#if formatted.json}<JsonHighlight {text} />{:else}{text}{/if}</pre>
 	<div class="absolute top-1.5 right-1.5">
 		<Button variant="ghost" onclick={copy}>
 			{status === 'copied' ? 'Copied' : status === 'failed' ? 'Copy failed' : 'Copy'}

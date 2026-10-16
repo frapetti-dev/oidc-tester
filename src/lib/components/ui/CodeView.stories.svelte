@@ -30,10 +30,29 @@
 />
 
 <Story
-	name="Non-JSON text stays verbatim"
+	name="REQ-UI-023 Non-JSON text stays verbatim"
+	parameters={{ req: ['REQ-UI-023'] }}
 	args={{ value: '<html>502 Bad Gateway</html>' }}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByTestId('code').textContent).toBe('<html>502 Bad Gateway</html>');
+		const code = canvas.getByTestId('code');
+		await expect(code.textContent).toBe('<html>502 Bad Gateway</html>');
+		await expect(code.querySelector('[data-token]')).toBeNull();
+	}}
+/>
+
+<Story
+	name="REQ-UI-023 JSON is syntax highlighted"
+	parameters={{ req: ['REQ-UI-023'] }}
+	args={{ value: '{"iss":"x","exp":1,"ok":true}' }}
+	play={async ({ canvas }) => {
+		const code = canvas.getByTestId('code');
+		const key = code.querySelector('[data-token="key"]')!;
+		await expect(key.textContent).toBe('"iss"');
+		await expect(code.querySelector('[data-token="string"]')?.textContent).toBe('"x"');
+		await expect(code.querySelector('[data-token="number"]')?.textContent).toBe('1');
+		await expect(code.querySelector('[data-token="literal"]')?.textContent).toBe('true');
+		await expect(getComputedStyle(key).color).not.toBe(getComputedStyle(code).color);
+		await expect(code.textContent).toBe('{\n  "iss": "x",\n  "exp": 1,\n  "ok": true\n}');
 	}}
 />
 

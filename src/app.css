@@ -33,6 +33,10 @@
 	--c-focus: #4338ca;
 	--c-scrim: rgb(16 18 24 / 0.45);
 	--c-window-close: #c42b1c;
+	--c-json-key: #2b5faa;
+	--c-json-string: #1f7a4d;
+	--c-json-number: #8a5300;
+	--c-json-literal: #a61fcc;
 	color-scheme: light;
 }
 
@@ -57,6 +61,10 @@
 	--c-focus: #a5b4fc;
 	--c-scrim: rgb(0 0 0 / 0.55);
 	--c-window-close: #c42b1c;
+	--c-json-key: #84b4f5;
+	--c-json-string: #6fd49b;
+	--c-json-number: #f2b65c;
+	--c-json-literal: #de6bff;
 	color-scheme: dark;
 }
 
@@ -81,6 +89,10 @@
 	--color-focus: var(--c-focus);
 	--color-scrim: var(--c-scrim);
 	--color-window-close: var(--c-window-close);
+	--color-json-key: var(--c-json-key);
+	--color-json-string: var(--c-json-string);
+	--color-json-number: var(--c-json-number);
+	--color-json-literal: var(--c-json-literal);
 }
 
 @theme {

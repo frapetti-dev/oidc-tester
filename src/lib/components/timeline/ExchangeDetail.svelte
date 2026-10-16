@@ -1,4 +1,5 @@
 <script lang="ts">
+	import JsonHighlight from '#lib/components/ui/JsonHighlight.svelte';
 	import type { Header } from '#lib/ipc/types.js';
 	import { formatBody } from './entries';
 
@@ -38,6 +39,8 @@
 				{/each}
 			</tbody>
 		</table>
+	{:else if formatted.kind === 'json'}
+		<pre class="code-block" data-testid="body-json"><JsonHighlight text={formatted.text} /></pre>
 	{:else}
 		<pre class="code-block" data-testid="body-{formatted.kind}">{formatted.text}</pre>
 	{/if}

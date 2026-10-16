@@ -13,6 +13,7 @@
 	import Badge from '#lib/components/ui/Badge.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import CodeView from '#lib/components/ui/CodeView.svelte';
+	import JsonHighlight from '#lib/components/ui/JsonHighlight.svelte';
 	import { menu } from '#lib/components/ui/contextMenu.js';
 	import type { MenuEntry } from '#lib/components/ui/menu.js';
 	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
@@ -268,6 +269,6 @@
 			{view.verified ? 'verified' : 'not verified'}
 		</Badge>
 	{:else}
-		<pre class="max-h-48 code-block p-2">{view.json}</pre>
+		<pre class="max-h-48 code-block p-2"><JsonHighlight text={view.json} /></pre>
 	{/if}
 {/snippet}

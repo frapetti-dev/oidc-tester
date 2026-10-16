@@ -126,7 +126,8 @@
 		await expect(scopes[2].querySelector('[data-testid="claim-item-description"]')).toBeNull();
 		await expect(row('amr').getAllByRole('listitem')[0]).toHaveTextContent(/pwd\s*Password/);
 		await expect(row('aud').getAllByRole('listitem')).toHaveLength(2);
-		await expect(row('address').getByText(/"country": "IT"/).tagName).toBe('PRE');
+		const addressPre = row('address').getByText((_, el) => el?.tagName === 'PRE');
+		await expect(addressPre.textContent).toContain('"country": "IT"');
 		await expect(row('email_verified').getByText('verified')).toHaveClass('badge-success');
 	}}
 />
