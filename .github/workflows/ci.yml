@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_call:
     inputs:
       ref:
@@ -16,7 +18,7 @@ on:
 
 concurrency:
   group: ci-${{ inputs.ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -91,6 +93,7 @@ jobs:
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
 
   build-installer:
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     needs: [check, lint, spec-coverage, unit-tests, rust-tests]
     steps:
