@@ -33,7 +33,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
@@ -45,7 +45,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
@@ -57,7 +57,7 @@ jobs:
   spec-coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: actions/setup-node@v5
         with: { node-version: '${{ env.NODE_VERSION }}' }
@@ -67,7 +67,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
@@ -81,7 +81,7 @@ jobs:
   rust-tests:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -94,7 +94,7 @@ jobs:
     runs-on: windows-latest
     needs: [check, lint, spec-coverage, unit-tests, rust-tests]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { ref: '${{ inputs.ref }}' }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
