@@ -1,8 +1,8 @@
 import type { AppInfo } from '#lib/ipc/types.js';
 import LICENSE_TEXT from '../../../LICENSE?raw';
 
-export const REPO_URL = 'https://git.infinityreply.dev/f.rapetti/oidc-tester';
-export const ISSUES_URL = `${REPO_URL}/-/issues`;
+export const REPO_URL = 'https://github.com/frapetti-dev/oidc-tester';
+export const ISSUES_URL = `${REPO_URL}/issues`;
 
 /** The repository `LICENSE` file, shown in About. */
 export const MIT_LICENSE_TEXT = LICENSE_TEXT.trim();

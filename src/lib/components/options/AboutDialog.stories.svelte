@@ -63,11 +63,11 @@
 		await userEvent.click(dialog.getByRole('button', { name: 'Report an issue' }));
 		await expect(args.onopenurl).toHaveBeenNthCalledWith(
 			1,
-			'https://git.infinityreply.dev/f.rapetti/oidc-tester'
+			'https://github.com/frapetti-dev/oidc-tester'
 		);
 		await expect(args.onopenurl).toHaveBeenNthCalledWith(
 			2,
-			'https://git.infinityreply.dev/f.rapetti/oidc-tester/-/issues'
+			'https://github.com/frapetti-dev/oidc-tester/issues'
 		);
 	}}
 />

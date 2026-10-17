@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "OAuth2/OIDC flow tester"
 authors = ["Federico Rapetti"]
 license = "MIT"
-repository = "https://git.infinityreply.dev/f.rapetti/oidc-tester"
+repository = "https://github.com/frapetti-dev/oidc-tester"
 edition = "2024"
 rust-version = "1.90"
 

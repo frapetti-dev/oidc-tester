@@ -263,7 +263,7 @@ And when it is activated, a menu labelled `Options` opens with `Export…`, `Imp
 Status: Accepted
 
 Given About
-Then it shows the app mark, `OIDC Tester`, `Version <getVersion()>`, the Tauri, WebView2 and OS versions, and the buttons `Copy diagnostics`, `Source code` (opens the repo URL `https://git.infinityreply.dev/f.rapetti/oidc-tester`) and `Report an issue` (opens `<repo>/-/issues`)
+Then it shows the app mark, `OIDC Tester`, `Version <getVersion()>`, the Tauri, WebView2 and OS versions, and the buttons `Copy diagnostics`, `Source code` (opens the repo URL `https://github.com/frapetti-dev/oidc-tester`) and `Report an issue` (opens `<repo>/issues`)
 And a collapsed `License` section holds the MIT text
 And a collapsed `Third-party licenses (<count>)` section has a `Filter packages` field that filters the list by case-insensitive name substring
 
