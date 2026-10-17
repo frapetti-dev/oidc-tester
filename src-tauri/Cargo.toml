@@ -1,6 +1,6 @@
 [package]
 name = "oidc-tester"
-version = "0.1.0"
+version = "0.2.0"
 description = "OAuth2/OIDC flow tester"
 authors = ["Federico Rapetti"]
 license = "MIT"
