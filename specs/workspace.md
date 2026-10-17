@@ -57,18 +57,18 @@ Then the banner `Workspace file is invalid: <zod message>` is shown and the file
 
 Status: Accepted
 
-Given a workspace with secrets
+Given workspaces with secrets
 When exported
-Then the file `<name>.oidcws.json` contains `{ format: 'oidc-tester-workspace', version: 1, workspace, runs }` with `hasSecret` and `hasPassword` forced to false and no secret values
+Then the file contains `{ format: 'oidc-tester-bundle', version: 1, exportedAt, workspaces: [{ workspace, runs }], settings? }` with `hasSecret` and `hasPassword` forced to false in workspaces and run snapshots, and no secret values
 
 ### REQ-WS-008 Import with fresh ids
 
 Status: Accepted
 
-Given a valid export file
+Given a valid export file (`oidc-tester-bundle` v1 or legacy `oidc-tester-workspace` v1)
 When imported
-Then fresh uuids are assigned to the workspace, IdPs, clients and flows, runs are re-pointed to them, and the workspace is opened
-And an invalid file shows the toast `Not a valid OIDC Tester workspace file: <reason>`
+Then fresh uuids are assigned to each workspace, its IdPs, clients and flows, runs are re-pointed, an imported scratchpad is named `Scratchpad (imported)`, and the first imported workspace is opened
+And an invalid file shows the toast `Not a valid OIDC Tester export file: <reason>`
 
 ### REQ-WS-009 IdP, client and flow CRUD with duplicate
 
@@ -102,3 +102,26 @@ Then each such IdP becomes an IdP with one client named `Default client` whose `
 And each such run gets `clientId` equal to its `idpId` (so its `idpSnapshot`, migrated the same way, contains that client)
 And the keychain entry `idp:<idpId>:client_secret` is copied to `client:<idpId>:client_secret` and then deleted, and the migrated workspace document is written back
 And a failed keychain copy leaves the document unmigrated on disk so the next load retries it
+
+### REQ-WS-012 Export dialog
+
+Status: Accepted
+
+Given the Export dialog
+When it opens
+Then it lists every workspace (scratchpad first) with a checkbox, only the current one checked, plus `Include run history` and `Include settings` unchecked
+And the confirm button reads `Export N workspace(s)` (`Export 1 workspace`, `Export 2 workspaces`) and is disabled at 0
+And on save the default file name is `oidc-tester-<YYYY-MM-DD>.oidcbundle.json`; runs are `[]` when run history is off, `settings` is omitted when settings are off
+And success shows the toast `Exported N workspace(s) to <path>`
+And the workspace `…` menu `Export…` writes only the current workspace with its runs and no settings, default name `<name>.oidcbundle.json`
+
+### REQ-WS-013 Import preview
+
+Status: Accepted
+
+Given a picked export file
+When it parses
+Then a dialog `Import workspaces` lists each workspace with a checkbox (all checked) and its IdP and run counts
+And if the file has settings, an unchecked `Apply settings from file` checkbox is shown
+And confirming `Import N workspace(s)` adds only the checked ones and shows the toast `Imported N workspace(s)`
+And when `Apply settings from file` is checked, the settings and theme from the file replace the current ones

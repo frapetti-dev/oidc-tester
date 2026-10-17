@@ -29,7 +29,7 @@ function runFor(
 	};
 }
 
-function setup(execute: (ctx: RunContext) => Promise<Run>) {
+function setup(execute: (ctx: RunContext) => Promise<Run>, historyLimit = 0) {
 	const ipc = createMemoryIpc();
 	const repo = new WorkspaceRepository(ipc);
 	const runner = new RunnerStore({
@@ -37,7 +37,8 @@ function setup(execute: (ctx: RunContext) => Promise<Run>) {
 		repo,
 		execute,
 		userInfo: () => Promise.resolve({}),
-		appVersion: '0.0.0'
+		appVersion: '0.0.0',
+		historyLimit: () => historyLimit
 	});
 	const idp = newIdp('Fake');
 	const flow = newFlow('client_credentials');
@@ -97,6 +98,32 @@ describe('RunnerStore', () => {
 		expect(runner.runs).toEqual([]);
 		expect(runner.shown).toBeNull();
 		expect(await repo.listRuns('ws1')).toEqual([]);
+	});
+
+	it('REQ-SET-004 runs beyond the history limit are deleted from the list and from storage; 0 keeps all', async () => {
+		let n = 0;
+		const limited = setup(
+			(ctx) => Promise.resolve(runFor(ctx, 'success', `2026-10-02T10:0${n++}:00.000Z`)),
+			2
+		);
+		const ids: string[] = [];
+		for (let i = 0; i < 3; i++) {
+			const run = await limited.runner.start('ws1', limited.idp, limited.client, limited.flow);
+			ids.push(run!.id);
+		}
+		expect(limited.runner.runs.map((r) => r.id)).toEqual([ids[2], ids[1]]);
+		expect((await limited.repo.listRuns('ws1')).map((r) => r.id)).toEqual([ids[2], ids[1]]);
+
+		n = 0;
+		const unlimited = setup(
+			(ctx) => Promise.resolve(runFor(ctx, 'success', `2026-10-02T10:0${n++}:00.000Z`)),
+			0
+		);
+		for (let i = 0; i < 3; i++) {
+			await unlimited.runner.start('ws1', unlimited.idp, unlimited.client, unlimited.flow);
+		}
+		expect(unlimited.runner.runs).toHaveLength(3);
+		expect(await unlimited.repo.listRuns('ws1')).toHaveLength(3);
 	});
 
 	it('REQ-UI-020 shown run follows the selected flow and remembers the run opened from history', async () => {

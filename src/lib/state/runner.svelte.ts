@@ -11,6 +11,8 @@ export interface RunnerDeps {
 	execute: typeof executeRun;
 	userInfo: typeof callUserInfo;
 	appVersion: string;
+	/** Runs kept per workspace; 0 keeps all. */
+	historyLimit: () => number;
 }
 
 /** Runs flows one at a time and keeps the run history of the open workspace. */
@@ -79,6 +81,15 @@ export class RunnerStore {
 			await this.deps.repo.saveRun(run);
 			// The finished run is prepended to `runs` below; `shown` derives from it.
 			this.runs = [run, ...this.runs.filter((r) => r.id !== run.id)];
+			const limit = this.deps.historyLimit();
+			if (limit > 0 && this.runs.length > limit) {
+				const drop = this.runs.slice(limit);
+				await this.deps.repo.deleteRuns(
+					workspaceId,
+					drop.map((r) => r.id)
+				);
+				this.runs = this.runs.slice(0, limit);
+			}
 			return run;
 		} finally {
 			this.running = false;

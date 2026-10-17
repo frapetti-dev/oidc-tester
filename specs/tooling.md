@@ -54,3 +54,13 @@ Given the CLI is run in a project root
 When it finishes
 Then it prints the uncovered IDs (if any) and `spec coverage: N/M`
 And exits 1 when any ID is uncovered, else 0
+
+### REQ-TOOL-007 Third-party license list
+
+Status: Accepted
+
+Given `pnpm licenses:gen`
+When it runs
+Then `src/lib/about/licenses.json` holds `{ packages: [{ name, version, license, source: 'npm'|'cargo', homepage: string|null }] }` for production npm dependencies (`pnpm licenses list --prod --json`) and the Rust crates reachable from `oidc-tester` through normal (non-dev, non-build) dependencies for `x86_64-pc-windows-msvc`, excluding `oidc-tester` itself
+And entries are sorted by name then version and deduplicated by source+name+version
+And a missing license is `UNKNOWN`

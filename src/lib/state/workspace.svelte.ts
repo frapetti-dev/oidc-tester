@@ -1,4 +1,6 @@
 import type { IpcApi } from '#lib/ipc/types.js';
+import { newSettings, type BundleSettings, type Settings } from '#lib/model/settings.js';
+import { BUNDLE_EXTENSION, type BundleEntry } from '#lib/model/workspaceFile.js';
 import {
 	SCRATCHPAD_ID,
 	nowIso,
@@ -53,12 +55,14 @@ export class WorkspaceStore {
 
 	readonly repo: WorkspaceRepository;
 	private readonly ipc: IpcApi;
+	private readonly settings: () => Settings;
 	private readonly saver: DebouncedSaver<Workspace>;
 	private lastSaved = '';
 	private disposeEffects: (() => void) | null = null;
 
-	constructor(ipc: IpcApi) {
+	constructor(ipc: IpcApi, settings: () => Settings = newSettings) {
 		this.ipc = ipc;
+		this.settings = settings;
 		this.repo = new WorkspaceRepository(ipc);
 		this.saver = createDebouncedSaver(async (ws) => {
 			const toWrite = { ...ws, updatedAt: nowIso() };
@@ -177,26 +181,57 @@ export class WorkspaceStore {
 		await this.open(SCRATCHPAD_ID);
 	}
 
-	async exportCurrent(): Promise<string | null> {
-		if (!this.current) return null;
-		await this.persistNow();
-		return this.repo.exportToFile(this.current.id);
+	async exportWorkspaces(
+		ids: string[],
+		opts: { runs: boolean; settings: BundleSettings | null },
+		defaultName = `oidc-tester-${nowIso().slice(0, 10)}${BUNDLE_EXTENSION}`
+	): Promise<void> {
+		try {
+			await this.persistNow();
+			const bundle = await this.repo.buildBundle(ids, opts);
+			const path = await this.repo.writeBundle(bundle, defaultName);
+			if (path === null) return;
+			const n = bundle.workspaces.length;
+			this.toast = `Exported ${n} ${n === 1 ? 'workspace' : 'workspaces'} to ${path}`;
+		} catch (e) {
+			this.toast = `Could not export: ${errorMessage(e)}`;
+		}
 	}
 
-	async importWorkspace(): Promise<void> {
-		const result = await this.repo.importFromFile();
-		if (result === null) return;
-		if (!result.ok) {
-			this.toast = result.message;
-			return;
+	/** The `…` menu export: the open workspace with its runs, no settings. */
+	async exportCurrent(): Promise<void> {
+		if (!this.current) return;
+		await this.exportWorkspaces(
+			[this.current.id],
+			{ runs: true, settings: null },
+			`${this.current.name}${BUNDLE_EXTENSION}`
+		);
+	}
+
+	/** Asks for an export file; null when cancelled or invalid (the toast then says why). */
+	async pickImport(): Promise<{ entries: BundleEntry[]; settings: BundleSettings | null } | null> {
+		const parsed = await this.repo.readImportFile();
+		if (parsed === null) return null;
+		if (!parsed.ok) {
+			this.toast = parsed.message;
+			return null;
 		}
+		return { entries: parsed.entries, settings: parsed.settings };
+	}
+
+	async importEntries(entries: BundleEntry[]): Promise<void> {
+		if (entries.length === 0) return;
+		await this.persistNow();
+		const imported = await this.repo.importEntries(entries);
 		await this.refreshList();
-		await this.open(result.workspace.id);
+		await this.open(imported[0].id);
+		const n = imported.length;
+		this.toast = `Imported ${n} ${n === 1 ? 'workspace' : 'workspaces'}`;
 	}
 
 	addIdp(): Idp | null {
 		if (!this.current) return null;
-		const idp = addIdp(this.current);
+		const idp = addIdp(this.current, undefined, this.settings().newIdp);
 		this.selection = { idpId: idp.id, clientId: null, flowId: null };
 		return idp;
 	}
@@ -212,7 +247,7 @@ export class WorkspaceStore {
 	addFlow(idpId: string, clientId: string, type: FlowType): Flow | null {
 		const client = this.findClient(idpId, clientId);
 		if (!client) return null;
-		const flow = addFlow(client, type);
+		const flow = addFlow(client, type, this.settings().newFlow);
 		this.selection = { idpId, clientId, flowId: flow.id };
 		return flow;
 	}

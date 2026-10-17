@@ -107,7 +107,7 @@ Hierarchy is carried by structure, not color: three levels differ in weight, siz
 
 ## Window chrome
 
-The main window is frameless (`decorations: false`). `TitleBar.svelte` provides, left to right: drawer toggle (narrow only), mark and name (name hidden when narrow), workspace switcher, `Workspace actions` menu button, a flexible drag area, theme switch, and Minimize / Maximize-Restore / Close.
+The main window is frameless (`decorations: false`). `TitleBar.svelte` provides, left to right: drawer toggle (narrow only), mark and name (name hidden when narrow), workspace switcher, `Workspace actions` menu button, a flexible drag area, `Options` menu button (hamburger, REQ-UI-024), and Minimize / Maximize-Restore / Close.
 
 - The bar is a drag region; double-click on empty space toggles maximize (REQ-UI-007).
 - Window actions go through `IpcApi.window*` only, never Tauri APIs directly from components. Required permissions are in `src-tauri/capabilities/default.json`.
@@ -126,6 +126,14 @@ A 2px strip on the titlebar's bottom edge, the app's one expressive element.
 | `error`   | all `danger`, reverts to idle after 2.4s                                                                    |
 
 A cancelled run goes straight to idle. With reduced motion the sweep stops and the bars stay static. The strip is `aria-hidden`; run results are announced through the normal results panel.
+
+## Dialogs
+
+- **One frame.** Every modal is `Modal.svelte` on a native `<dialog>`: `radius-dialog`, `shadow-float`, `scrim` backdrop, title row, a body that scrolls inside `70vh`, and a footer with secondary information on the left (`aside`) and the actions on the right. Widths: `sm` 26rem (confirm and rename `Dialog`), `md` 34rem (Export, Import, About), `lg` 44rem (Settings, the form maximum).
+- **Copy.** Sentence case, no eyebrows. A confirm button names its result (`Export 3 workspaces`, `Import 1 workspace`); the toast repeats the verb.
+- **Settings apply live.** There is no Save button; each change is written to `settings.json` after 500 ms and `Done` closes the dialog. Settings sections are plain `h3` groups, not `FormSection`s, because those persist their open state in `oidct.sections`, which means nothing in a modal.
+- **Export and import.** A checkbox per workspace, the current one preselected on export, all selected on import. Run history and settings are opt-in because runs can hold tokens in plain text; secrets are never exported.
+- **About mark.** The 72px app mark draws its three bars in from the left, 80ms apart, once per opening. It is the only ambient motion in the app besides the run sweep and is off under `prefers-reduced-motion`.
 
 ## Forms (REQ-UI-014, REQ-UI-015)
 
@@ -182,7 +190,7 @@ Three tabs: Tokens, Errors, Timeline. The panel uses `surface` while the editor 
 
 - Visible focus ring on everything (`:focus-visible`, 2px `focus` outline; fields use a focus border plus ring).
 - Targets are 32px high, window controls 46x40.
-- Icon-only controls are named (`Show sidebar`, `Workspace actions`, `More actions for {name}`, `Minimize` ...). The theme switch is a radio group with names `System`, `Light`, `Dark`.
+- Icon-only controls are named (`Show sidebar`, `Workspace actions`, `Options`, `More actions for {name}`, `Minimize` ...). The theme control in Settings is a radio group with names `System`, `Light`, `Dark`.
 - Disclosure sections expose `aria-expanded` / `aria-controls`; the sidebar is a tree with `aria-selected`; menus and drawers use the proper roles and return focus.
 - Status (copy notice) is a polite live region. Color is never the only signal: badges carry text, the run indicator is paired with results.
 - Motion is limited to short transitions and the run sweep; `prefers-reduced-motion` collapses all of it.

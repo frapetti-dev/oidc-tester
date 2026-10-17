@@ -10,14 +10,17 @@ import {
 	type Workspace
 } from '#lib/model/schema.js';
 import {
-	EXPORT_FORMAT,
-	EXPORT_VERSION,
-	WorkspaceFileSchema,
+	BUNDLE_FORMAT,
+	BUNDLE_VERSION,
 	describeZodError,
-	withFreshIds,
+	importedEntry,
+	parseImportFile,
 	withoutSecretFlags,
-	type WorkspaceFile
+	type Bundle,
+	type BundleEntry,
+	type ParsedImport
 } from '#lib/model/workspaceFile.js';
+import type { BundleSettings } from '#lib/model/settings.js';
 import { legacyClientSecretKey, legacyIdpIds } from '#lib/model/legacy.js';
 import { clientSecretKey, errorMessage } from './secrets';
 
@@ -27,10 +30,13 @@ const wsDoc = (id: string) => `${wsDir(id)}/workspace.json`;
 const runsDir = (wsId: string) => `${wsDir(wsId)}/runs`;
 const runDoc = (wsId: string, runId: string) => `${runsDir(wsId)}/${runId}.json`;
 
-const FILE_FILTERS = [{ name: 'OIDC Tester workspace', extensions: ['json'] }];
+const FILE_FILTERS = [{ name: 'OIDC Tester export', extensions: ['json'] }];
 
 export type LoadResult = { ok: true; workspace: Workspace } | { ok: false; message: string };
-export type ImportResult = { ok: true; workspace: Workspace } | { ok: false; message: string };
+export interface BundleOptions {
+	runs: boolean;
+	settings: BundleSettings | null;
+}
 export interface WorkspaceSummary {
 	id: string;
 	name: string;
@@ -166,44 +172,60 @@ export class WorkspaceRepository {
 		await this.ipc.docDelete(runDoc(wsId, runId));
 	}
 
-	async buildExport(id: string): Promise<WorkspaceFile> {
-		const ws = await this.requireValid(id);
-		const stripped = withoutSecretFlags(ws, await this.listRuns(id));
-		return { format: EXPORT_FORMAT, version: EXPORT_VERSION, ...stripped };
+	async deleteRuns(wsId: string, runIds: string[]): Promise<void> {
+		for (const id of runIds) await this.deleteRun(wsId, id);
+	}
+
+	async buildBundle(ids: string[], opts: BundleOptions): Promise<Bundle> {
+		const workspaces: BundleEntry[] = [];
+		for (const id of ids) {
+			const loaded = await this.load(id);
+			if (!loaded.ok) throw new Error(`${id}: ${loaded.message}`);
+			workspaces.push(
+				withoutSecretFlags(loaded.workspace, opts.runs ? await this.listRuns(id) : [])
+			);
+		}
+		const bundle: Bundle = {
+			format: BUNDLE_FORMAT,
+			version: BUNDLE_VERSION,
+			exportedAt: nowIso(),
+			workspaces
+		};
+		if (opts.settings) bundle.settings = opts.settings;
+		return bundle;
 	}
 
 	/** Returns the written path, or null when the save dialog was dismissed. */
-	async exportToFile(id: string): Promise<string | null> {
-		const file = await this.buildExport(id);
-		const path = await this.ipc.pickSavePath({
-			defaultPath: `${file.workspace.name}.oidcws.json`,
-			filters: FILE_FILTERS
-		});
+	async writeBundle(bundle: Bundle, defaultName: string): Promise<string | null> {
+		const path = await this.ipc.pickSavePath({ defaultPath: defaultName, filters: FILE_FILTERS });
 		if (path === null) return null;
-		await this.ipc.writeTextFile(path, JSON.stringify(file, null, 2));
+		await this.ipc.writeTextFile(path, JSON.stringify(bundle, null, 2));
 		return path;
 	}
 
 	/** Null when the open dialog was dismissed. */
-	async importFromFile(): Promise<ImportResult | null> {
+	async readImportFile(): Promise<ParsedImport | null> {
 		const path = await this.ipc.pickOpenPath({ filters: FILE_FILTERS });
 		if (path === null) return null;
-		const invalid = (reason: string): ImportResult => ({
-			ok: false,
-			message: `Not a valid OIDC Tester workspace file: ${reason}`
-		});
-		let json: unknown;
+		let text: string;
 		try {
-			json = JSON.parse(await this.ipc.readTextFile(path));
+			text = await this.ipc.readTextFile(path);
 		} catch (e) {
-			return invalid(errorMessage(e));
+			return { ok: false, message: `Not a valid OIDC Tester export file: ${errorMessage(e)}` };
 		}
-		const parsed = WorkspaceFileSchema.safeParse(json);
-		if (!parsed.success) return invalid(describeZodError(parsed.error));
-		const fresh = withFreshIds(parsed.data);
-		await this.save(fresh.workspace);
-		for (const run of fresh.runs) await this.saveRun(run);
-		return { ok: true, workspace: fresh.workspace };
+		return parseImportFile(text);
+	}
+
+	/** Stores the entries under fresh ids; returns the new workspaces in input order. */
+	async importEntries(entries: BundleEntry[]): Promise<Workspace[]> {
+		const imported: Workspace[] = [];
+		for (const entry of entries) {
+			const fresh = importedEntry(entry);
+			await this.save(fresh.workspace);
+			for (const run of fresh.runs) await this.saveRun(run);
+			imported.push(fresh.workspace);
+		}
+		return imported;
 	}
 
 	private async requireValid(id: string): Promise<Workspace> {

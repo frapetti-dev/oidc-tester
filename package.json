@@ -1,7 +1,8 @@
 {
 	"name": "oidc-tester",
 	"private": true,
-	"version": "0.0.1",
+	"license": "MIT",
+	"version": "0.1.0",
 	"type": "module",
 	"scripts": {
 		"dev": "pnpm tauri:dev",
@@ -18,6 +19,7 @@
 		"format": "prettier --write .",
 		"tauri": "tauri",
 		"spec:check": "node scripts/spec-coverage.ts",
+		"licenses:gen": "node scripts/licenses.ts",
 		"test:unit": "vitest run",
 		"test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
 		"test:e2e:web": "playwright test --project=web",

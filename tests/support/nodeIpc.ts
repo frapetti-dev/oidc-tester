@@ -512,6 +512,16 @@ export function createNodeIpc(options: NodeIpcOptions = {}): NodeIpc {
 			return readFile(resolveFile(path), 'utf8');
 		},
 
+		async revealPath() {},
+		async appInfo() {
+			return {
+				version: '0.1.0',
+				tauriVersion: '2.12.1',
+				webviewVersion: '131.0.0.0',
+				os: 'Windows 10.0.26300 (64-bit)',
+				dataDir: '/tmp/oidct-e2e'
+			};
+		},
 		async openUrl(url) {
 			state.openedUrls.push(url);
 		},

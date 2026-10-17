@@ -9,6 +9,7 @@ import {
 	type Idp,
 	type Workspace
 } from '#lib/model/schema.js';
+import type { NewFlowDefaults, NewIdpDefaults } from '#lib/model/settings.js';
 import { clientSecretKey, passwordKey } from './secrets';
 
 export interface SecretCopy {
@@ -23,8 +24,13 @@ function jsonClone<T>(value: T): T {
 
 /** Mutating tree operations on a workspace (works on plain objects and `$state` proxies). */
 
-export function addIdp(ws: Workspace, name?: string): Idp {
+export function addIdp(ws: Workspace, name?: string, defaults?: NewIdpDefaults): Idp {
 	const idp = newIdp(name);
+	if (defaults) {
+		idp.http.timeoutMs = defaults.timeoutMs;
+		idp.http.proxy = { ...defaults.proxy };
+		idp.http.tlsInsecure = defaults.tlsInsecure;
+	}
 	ws.idps.push(idp);
 	return idp;
 }
@@ -35,8 +41,9 @@ export function addClient(idp: Idp, name?: string): Client {
 	return client;
 }
 
-export function addFlow(client: Client, type: FlowType): Flow {
+export function addFlow(client: Client, type: FlowType, defaults?: NewFlowDefaults): Flow {
 	const flow = newFlow(type);
+	if (defaults) flow.params.redirectUri = defaults.redirectUri;
 	client.flows.push(flow);
 	return flow;
 }

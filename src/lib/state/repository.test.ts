@@ -9,6 +9,7 @@ import {
 	type Workspace
 } from '#lib/model/schema.js';
 import type { Run } from '#lib/model/run.js';
+import { newSettings } from '#lib/model/settings.js';
 import { WorkspaceRepository } from './repository';
 import { clearSecret, clientSecretKey, passwordKey, storeSecret } from './secrets';
 
@@ -170,33 +171,63 @@ describe('invalid files', () => {
 });
 
 describe('export and import', () => {
-	it('REQ-WS-007 export holds format/version/workspace/runs with hasSecret and hasPassword forced false and no secret values', async () => {
+	const NO_SETTINGS = { runs: true, settings: null };
+
+	it('REQ-WS-007 export holds format/version/workspaces with hasSecret and hasPassword forced false and no secret values', async () => {
 		const ws = workspaceWithSecrets('Exported');
 		await repo.save(ws);
 		await repo.saveRun(runFor(ws));
-		ipc.savePath = 'C:/out/Exported.oidcws.json';
+		ipc.savePath = 'C:/out/Exported.oidcbundle.json';
 
-		const path = await repo.exportToFile(ws.id);
+		const bundle = await repo.buildBundle([ws.id], NO_SETTINGS);
+		const path = await repo.writeBundle(bundle, 'Exported.oidcbundle.json');
 
-		expect(path).toBe('C:/out/Exported.oidcws.json');
-		const text = ipc.files.get('C:/out/Exported.oidcws.json') ?? '';
+		expect(path).toBe('C:/out/Exported.oidcbundle.json');
+		const text = ipc.files.get('C:/out/Exported.oidcbundle.json') ?? '';
 		const file = JSON.parse(text);
-		expect(file.format).toBe('oidc-tester-workspace');
+		expect(file.format).toBe('oidc-tester-bundle');
 		expect(file.version).toBe(1);
-		expect(file.workspace.idps[0].clients[0].hasSecret).toBe(false);
-		expect(file.workspace.idps[0].clients[0].flows[0].params.hasPassword).toBe(false);
-		expect(file.runs).toHaveLength(1);
-		expect(file.runs[0].idpSnapshot.clients[0].hasSecret).toBe(false);
-		expect(file.runs[0].flowSnapshot.params.hasPassword).toBe(false);
+		expect(typeof file.exportedAt).toBe('string');
+		expect(file.settings).toBeUndefined();
+		expect(file.workspaces).toHaveLength(1);
+		const [entry] = file.workspaces;
+		expect(entry.workspace.idps[0].clients[0].hasSecret).toBe(false);
+		expect(entry.workspace.idps[0].clients[0].flows[0].params.hasPassword).toBe(false);
+		expect(entry.runs).toHaveLength(1);
+		expect(entry.runs[0].idpSnapshot.clients[0].hasSecret).toBe(false);
+		expect(entry.runs[0].flowSnapshot.params.hasPassword).toBe(false);
 		expect(text).not.toContain('client-secret');
 		expect(text).not.toContain('"pw"');
+	});
+
+	it('REQ-WS-007 a bundle holds several workspaces, drops runs when asked and carries settings only when given', async () => {
+		const a = workspaceWithSecrets('A');
+		const b = workspaceWithSecrets('B');
+		await repo.save(a);
+		await repo.save(b);
+		await repo.saveRun(runFor(a));
+
+		const plain = await repo.buildBundle([a.id, b.id], { runs: false, settings: null });
+		expect(plain.workspaces.map((e) => e.workspace.name)).toEqual(['A', 'B']);
+		expect(plain.workspaces.every((e) => e.runs.length === 0)).toBe(true);
+		expect('settings' in plain).toBe(false);
+
+		const settings = { ...newSettings(), theme: 'dark' as const };
+		const withSettings = await repo.buildBundle([a.id], { runs: true, settings });
+		expect(withSettings.settings).toEqual(settings);
+		expect(withSettings.workspaces[0].runs).toHaveLength(1);
+	});
+
+	it('REQ-WS-007 building a bundle fails naming the workspace when one is unreadable', async () => {
+		await expect(repo.buildBundle(['missing'], NO_SETTINGS)).rejects.toThrow(/^missing: /);
 	});
 
 	it('REQ-WS-007 export is cancelled without writing when the save dialog is dismissed', async () => {
 		const ws = workspaceWithSecrets();
 		await repo.save(ws);
 		ipc.savePath = null;
-		expect(await repo.exportToFile(ws.id)).toBeNull();
+		const bundle = await repo.buildBundle([ws.id], NO_SETTINGS);
+		expect(await repo.writeBundle(bundle, 'x.oidcbundle.json')).toBeNull();
 		expect(ipc.files.size).toBe(0);
 	});
 
@@ -204,15 +235,16 @@ describe('export and import', () => {
 		const ws = workspaceWithSecrets('Source');
 		await repo.save(ws);
 		await repo.saveRun(runFor(ws));
-		ipc.savePath = 'C:/out/source.oidcws.json';
-		await repo.exportToFile(ws.id);
-		ipc.openPath = 'C:/out/source.oidcws.json';
+		ipc.savePath = 'C:/out/source.oidcbundle.json';
+		await repo.writeBundle(await repo.buildBundle([ws.id], NO_SETTINGS), 'source.oidcbundle.json');
+		ipc.openPath = 'C:/out/source.oidcbundle.json';
 
-		const result = await repo.importFromFile();
+		const parsed = await repo.readImportFile();
 
-		expect(result?.ok).toBe(true);
-		if (!result?.ok) throw new Error('unreachable');
-		const imported = result.workspace;
+		expect(parsed?.ok).toBe(true);
+		if (!parsed?.ok) throw new Error('unreachable');
+		const [imported] = await repo.importEntries(parsed.entries);
+		expect(imported.name).toBe('Source');
 		expect(imported.id).not.toBe(ws.id);
 		expect(imported.idps[0].id).not.toBe(ws.idps[0].id);
 		const importedClient = imported.idps[0].clients[0];
@@ -230,32 +262,94 @@ describe('export and import', () => {
 		expect(runs[0].idpSnapshot.id).toBe(imported.idps[0].id);
 		expect(runs[0].idpSnapshot.clients[0].id).toBe(importedClient.id);
 		expect(runs[0].flowSnapshot.id).toBe(importedClient.flows[0].id);
-		const stored = await repo.load(imported.id);
-		expect(stored.ok).toBe(true);
+		expect((await repo.load(imported.id)).ok).toBe(true);
 	});
 
-	it('REQ-WS-008 invalid files give "Not a valid OIDC Tester workspace file: <reason>" and store nothing', async () => {
+	it('REQ-WS-008 an imported scratchpad becomes "Scratchpad (imported)" and keeps no scratchpad id', async () => {
+		await repo.ensureScratchpad();
+		const bundle = await repo.buildBundle(
+			[SCRATCHPAD_ID, (await seedNamed('Named')).id],
+			NO_SETTINGS
+		);
+		const imported = await repo.importEntries(bundle.workspaces);
+		expect(imported.map((w) => w.name)).toEqual(['Scratchpad (imported)', 'Named']);
+		expect(imported[0].id).not.toBe(SCRATCHPAD_ID);
+	});
+
+	it('REQ-WS-008 a legacy oidc-tester-workspace file imports as one workspace without settings', async () => {
+		const ws = workspaceWithSecrets('Legacy');
+		const legacy = {
+			format: 'oidc-tester-workspace',
+			version: 1,
+			workspace: ws,
+			runs: [runFor(ws)]
+		};
+		ipc.openPath = 'C:/in/old.oidcws.json';
+		ipc.files.set('C:/in/old.oidcws.json', JSON.stringify(legacy));
+
+		const parsed = await repo.readImportFile();
+
+		expect(parsed).toMatchObject({ ok: true, settings: null });
+		if (!parsed?.ok) throw new Error('unreachable');
+		expect(parsed.entries).toHaveLength(1);
+		expect(parsed.entries[0].workspace.name).toBe('Legacy');
+		expect(parsed.entries[0].runs).toHaveLength(1);
+	});
+
+	it('REQ-WS-008 invalid files give "Not a valid OIDC Tester export file: <reason>" and store nothing', async () => {
 		ipc.openPath = 'C:/in/bad.json';
 		ipc.files.set('C:/in/bad.json', JSON.stringify({ format: 'something-else' }));
 		const before = ipc.docs.size;
-		const result = await repo.importFromFile();
+		const result = await repo.readImportFile();
 		expect(result?.ok).toBe(false);
 		if (!result || result.ok) throw new Error('unreachable');
-		expect(result.message).toMatch(/^Not a valid OIDC Tester workspace file: .+/);
+		expect(result.message).toMatch(/^Not a valid OIDC Tester export file: .+/);
 		expect(ipc.docs.size).toBe(before);
 
 		ipc.files.set('C:/in/bad.json', '{not json');
-		const broken = await repo.importFromFile();
+		const broken = await repo.readImportFile();
 		expect(broken && !broken.ok && broken.message).toMatch(
-			/^Not a valid OIDC Tester workspace file: /
+			/^Not a valid OIDC Tester export file: /
 		);
+
+		ipc.files.set(
+			'C:/in/bad.json',
+			JSON.stringify({ format: 'oidc-tester-workspace', version: 1, workspace: {}, runs: [] })
+		);
+		const badLegacy = await repo.readImportFile();
+		expect(badLegacy && !badLegacy.ok && badLegacy.message).toMatch(
+			/^Not a valid OIDC Tester export file: .+/
+		);
+
+		ipc.openPath = 'C:/in/missing.json';
+		const unreadable = await repo.readImportFile();
+		expect(unreadable && !unreadable.ok && unreadable.message).toMatch(
+			/^Not a valid OIDC Tester export file: /
+		);
+	});
+
+	it('REQ-WS-008 a bundle with settings reports them to the caller', async () => {
+		const ws = workspaceWithSecrets('S');
+		await repo.save(ws);
+		const settings = { ...newSettings(), theme: 'light' as const };
+		ipc.savePath = 'C:/out/s.oidcbundle.json';
+		await repo.writeBundle(await repo.buildBundle([ws.id], { runs: false, settings }), 's');
+		ipc.openPath = 'C:/out/s.oidcbundle.json';
+		const parsed = await repo.readImportFile();
+		expect(parsed).toMatchObject({ ok: true, settings });
 	});
 
 	it('REQ-WS-008 import returns null when the open dialog is dismissed', async () => {
 		ipc.openPath = null;
-		expect(await repo.importFromFile()).toBeNull();
+		expect(await repo.readImportFile()).toBeNull();
 	});
 });
+
+async function seedNamed(name: string): Promise<Workspace> {
+	const ws = workspaceWithSecrets(name);
+	await repo.save(ws);
+	return ws;
+}
 
 describe('runs', () => {
 	it('REQ-TL-007 runs are persisted with plaintext tokens and can be listed newest first and deleted', async () => {

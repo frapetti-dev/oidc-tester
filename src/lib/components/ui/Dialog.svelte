@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from './Button.svelte';
+	import Modal from './Modal.svelte';
 	import TextField from './TextField.svelte';
 
 	interface Props {
@@ -25,46 +26,30 @@
 		onconfirm
 	}: Props = $props();
 
-	let dialog: HTMLDialogElement | undefined = $state();
 	let value = $state('');
 
 	$effect(() => {
-		if (!dialog) return;
-		if (open && !dialog.open) {
-			value = initialValue;
-			dialog.showModal();
-		} else if (!open && dialog.open) {
-			dialog.close();
-		}
+		if (open) value = initialValue;
 	});
 
 	const canConfirm = $derived(inputLabel === undefined || value.trim() !== '');
 
-	function confirm(event: SubmitEvent) {
-		event.preventDefault();
+	function confirm() {
 		if (!canConfirm) return;
 		open = false;
 		onconfirm(value.trim());
 	}
 </script>
 
-<dialog
-	bind:this={dialog}
-	aria-label={title}
-	class="m-auto w-[26rem] max-w-[90vw] rounded-dialog border border-border bg-surface-raised p-0 text-fg shadow-float backdrop:bg-scrim"
-	onclose={() => (open = false)}
->
-	<form class="space-y-4 p-5" onsubmit={confirm}>
-		<h2 class="text-base font-semibold">{title}</h2>
-		{#if message}<p class="text-sm text-fg-muted">{message}</p>{/if}
-		{#if inputLabel !== undefined}
-			<TextField label={inputLabel} bind:value />
-		{/if}
-		<div class="flex justify-end gap-2">
-			<Button onclick={() => (open = false)}>Cancel</Button>
-			<Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={!canConfirm}>
-				{confirmLabel}
-			</Button>
-		</div>
-	</form>
-</dialog>
+<Modal bind:open {title} onsubmit={confirm}>
+	{#if message}<p class="text-sm text-fg-muted">{message}</p>{/if}
+	{#if inputLabel !== undefined}
+		<TextField label={inputLabel} bind:value />
+	{/if}
+	{#snippet footer()}
+		<Button onclick={() => (open = false)}>Cancel</Button>
+		<Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={!canConfirm}>
+			{confirmLabel}
+		</Button>
+	{/snippet}
+</Modal>

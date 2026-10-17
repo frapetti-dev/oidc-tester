@@ -2,7 +2,7 @@ import { page, userEvent } from 'vitest/browser';
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { HttpExchange, HttpRequestSpec, HttpResult } from '#lib/ipc/types.js';
-import { FLOW_TYPE_LABELS, type FlowType } from '#lib/model/schema.js';
+import { FLOW_TYPE_LABELS, newWorkspace, type FlowType } from '#lib/model/schema.js';
 import { SECTIONS_STORAGE_KEY, resetSectionMemory } from '#lib/state/sections.svelte.js';
 import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 import { createMemoryIpc, type MemoryIpc } from '#lib/testing/memoryIpc.js';
@@ -301,5 +301,118 @@ describe('app', () => {
 		await expect.element(run).toBeInViewport();
 		scroller.scrollTop = 0;
 		await expect.element(run).toBeInViewport();
+	});
+	it('REQ-UI-024 Options menu opens Settings and About', async () => {
+		ipc = createMemoryIpc();
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('radio', { name: 'Dark' })).not.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Options' }).click();
+		const items = page
+			.getByRole('menu', { name: 'Options' })
+			.getByRole('menuitem')
+			.elements()
+			.map((el) => el.textContent?.trim());
+		expect(items).toEqual(['Export…', 'Import…', 'Settings…', 'About OIDC Tester']);
+		await page.getByRole('menuitem', { name: 'Settings…' }).click();
+		const settings = page.getByRole('dialog', { name: 'Settings' });
+		await expect.element(settings).toBeVisible();
+		await settings.getByText('Dark', { exact: true }).click();
+		await expect.poll(() => document.documentElement.classList.contains('dark')).toBe(true);
+		await settings.getByText('System', { exact: true }).click();
+		await settings.getByRole('button', { name: 'Done' }).click();
+		await expect.element(settings).not.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Options' }).click();
+		await page.getByRole('menuitem', { name: 'About OIDC Tester' }).click();
+		const about = page.getByRole('dialog', { name: 'About' });
+		await expect.element(about.getByText('Version 0.1.0')).toBeVisible();
+		await expect.element(about.getByText('131.0.0.0')).toBeVisible();
+	});
+
+	it('REQ-WS-012 exporting two workspaces without runs writes one bundle and toasts the path', async () => {
+		ipc = createMemoryIpc();
+		const second = newWorkspace('Second');
+		ipc.docs.set(`workspaces/${second.id}/workspace.json`, second);
+		ipc.savePath = 'C:/out/two.oidcbundle.json';
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+
+		await page.getByRole('button', { name: 'Options' }).click();
+		await page.getByRole('menuitem', { name: 'Export…' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Export workspaces' });
+		await expect.element(dialog.getByRole('checkbox', { name: /Scratchpad/ })).toBeChecked();
+		await expect.element(dialog.getByRole('checkbox', { name: /Second/ })).not.toBeChecked();
+		await dialog.getByRole('checkbox', { name: /Second/ }).click();
+		await dialog.getByRole('button', { name: 'Export 2 workspaces' }).click();
+
+		await expect
+			.element(
+				page.getByRole('status').getByText('Exported 2 workspaces to C:/out/two.oidcbundle.json')
+			)
+			.toBeVisible();
+		const file = JSON.parse(ipc.files.get('C:/out/two.oidcbundle.json') ?? '');
+		expect(file.format).toBe('oidc-tester-bundle');
+		expect(file.workspaces).toHaveLength(2);
+		expect(file.workspaces.every((w: { runs: unknown[] }) => w.runs.length === 0)).toBe(true);
+		expect(file.settings).toBeUndefined();
+	});
+
+	it('REQ-WS-013 importing a bundle adds the checked workspaces and opens the first', async () => {
+		ipc = createMemoryIpc();
+		const bundle = {
+			format: 'oidc-tester-bundle',
+			version: 1,
+			exportedAt: '2026-01-01T00:00:00.000Z',
+			workspaces: [
+				{ workspace: newWorkspace('Alpha'), runs: [] },
+				{ workspace: newWorkspace('Beta'), runs: [] }
+			]
+		};
+		ipc.files.set('C:/in/two.oidcbundle.json', JSON.stringify(bundle));
+		ipc.openPath = 'C:/in/two.oidcbundle.json';
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+
+		await page.getByRole('button', { name: 'Options' }).click();
+		await page.getByRole('menuitem', { name: 'Import…' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Import workspaces' });
+		await expect.element(dialog.getByRole('checkbox', { name: /Alpha/ })).toBeChecked();
+		await dialog.getByRole('checkbox', { name: /Beta/ }).click();
+		await dialog.getByRole('button', { name: 'Import 1 workspace' }).click();
+
+		await expect.element(page.getByText('Imported 1 workspace')).toBeVisible();
+		const select = page.getByLabelText('Workspace', { exact: true });
+		await expect
+			.poll(() => (select.element() as HTMLSelectElement).selectedOptions[0]?.textContent)
+			.toBe('Alpha');
+		expect(page.getByRole('option', { name: 'Beta' }).elements()).toHaveLength(0);
+	});
+
+	it('REQ-SET-002 REQ-SET-003 new IdP and flow take their defaults from Settings', async () => {
+		ipc = createMemoryIpc();
+		await render(AppRoot, { ipc });
+		await expect.element(page.getByRole('button', { name: 'Add IdP' })).toBeEnabled();
+
+		await page.getByRole('button', { name: 'Options' }).click();
+		await page.getByRole('menuitem', { name: 'Settings…' }).click();
+		const settings = page.getByRole('dialog', { name: 'Settings' });
+		await settings.getByLabelText('Timeout (ms)').fill('5000');
+		await settings.getByLabelText('Redirect URI').fill('https://spoofed.invalid/cb');
+		await settings.getByRole('button', { name: 'Done' }).click();
+		await expect.element(settings).not.toBeInTheDocument();
+
+		await addFlow('authorization_code_pkce');
+		const editor = page.getByRole('main', { name: 'Flow editor' });
+		await expect
+			.element(editor.getByLabelText('Redirect URI'))
+			.toHaveValue('https://spoofed.invalid/cb');
+
+		await page.getByRole('button', { name: 'New IdP', exact: true }).click();
+		await editor.getByRole('button', { name: /Network/ }).click();
+		await expect.element(editor.getByLabelText('Timeout (ms)')).toHaveValue(5000);
+		await expect
+			.poll(() => ipc.docs.get('settings.json'))
+			.toMatchObject({ newFlow: { redirectUri: 'https://spoofed.invalid/cb' } });
 	});
 });

@@ -39,6 +39,16 @@ async function run(ipc: NodeIpc, cmd: string, args: Args): Promise<unknown> {
 			return ipc.readTextFile(args.path as string);
 		case 'plugin:opener|open_url':
 			return ipc.openUrl(args.url as string);
+		case 'plugin:opener|reveal_item_in_dir':
+			return ipc.revealPath(String((args.paths as string[] | undefined)?.[0] ?? ''));
+		case 'plugin:app|version':
+			return (await ipc.appInfo()).version;
+		case 'plugin:app|tauri_version':
+			return (await ipc.appInfo()).tauriVersion;
+		case 'system_info': {
+			const { dataDir, webviewVersion, os } = await ipc.appInfo();
+			return { dataDir, webviewVersion, os };
+		}
 		case 'plugin:dialog|save':
 			return ipc.pickSavePath(
 				args.options as { defaultPath?: string; filters?: FileDialogFilter[] }

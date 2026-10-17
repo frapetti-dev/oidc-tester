@@ -1,6 +1,8 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
+	import ContextMenuHost from '#lib/components/ui/ContextMenuHost.svelte';
+	import type { MenuEntry } from '#lib/components/ui/menu.js';
 	import TitleBar from './TitleBar.svelte';
 
 	const { Story } = defineMeta({
@@ -15,6 +17,13 @@
 			workspaceId: 'scratchpad',
 			onworkspacechange: fn(),
 			workspaceMenu: () => [],
+			optionsMenu: (): MenuEntry[] => [
+				{ label: 'Export…', onselect: fn() },
+				{ label: 'Import…', onselect: fn() },
+				'separator',
+				{ label: 'Settings…', onselect: fn() },
+				{ label: 'About OIDC Tester', onselect: fn() }
+			],
 			showDrawerToggle: false,
 			drawerOpen: false,
 			ontoggledrawer: fn(),
@@ -98,3 +107,27 @@
 		);
 	}}
 />
+
+<Story
+	name="REQ-UI-024 Options button opens the Options menu"
+	parameters={{ req: ['REQ-UI-024'] }}
+	play={async ({ canvas, userEvent }) => {
+		await expect(canvas.queryByRole('radio', { name: 'Dark' })).toBeNull();
+		const button = canvas.getByRole('button', { name: 'Options' });
+		await expect(button).toHaveAttribute('aria-haspopup', 'menu');
+		await userEvent.click(button);
+		await canvas.findByRole('menu', { name: 'Options' });
+		const items = canvas.getAllByRole('menuitem');
+		await expect(items.map((el) => el.textContent?.trim())).toEqual([
+			'Export…',
+			'Import…',
+			'Settings…',
+			'About OIDC Tester'
+		]);
+	}}
+>
+	{#snippet template(args)}
+		<TitleBar {...args} />
+		<ContextMenuHost />
+	{/snippet}
+</Story>

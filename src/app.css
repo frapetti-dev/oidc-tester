@@ -189,7 +189,7 @@
 }
 
 @utility check-field {
-	@apply size-4 rounded-sm border-border bg-surface-raised text-accent focus:ring-1 focus:ring-focus focus:ring-offset-0;
+	@apply size-4 rounded-sm border-border bg-surface-raised text-accent checked:border-accent checked:bg-accent indeterminate:border-accent indeterminate:bg-accent focus:ring-1 focus:ring-focus focus:ring-offset-0;
 }
 
 @utility field-label {

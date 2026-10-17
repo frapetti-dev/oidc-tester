@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import MenuIcon from '@lucide/svelte/icons/menu';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import { contextMenu } from '#lib/state/contextMenu.svelte.js';
 	import type { MenuEntry } from '#lib/components/ui/menu.js';
-	import ThemeToggle from '#lib/components/ui/ThemeToggle.svelte';
+	import AppMark from '#lib/components/ui/AppMark.svelte';
 	import type { RunIndicatorState, WorkspaceSummary } from './types';
 
 	interface Props {
@@ -11,6 +12,7 @@
 		workspaceId: string;
 		onworkspacechange: (id: string) => void;
 		workspaceMenu: () => MenuEntry[];
+		optionsMenu: () => MenuEntry[];
 		showDrawerToggle: boolean;
 		drawerOpen: boolean;
 		ontoggledrawer: () => void;
@@ -26,6 +28,7 @@
 		workspaceId,
 		onworkspacechange,
 		workspaceMenu,
+		optionsMenu,
 		showDrawerToggle,
 		drawerOpen,
 		ontoggledrawer,
@@ -66,11 +69,7 @@
 			<PanelLeft size={16} aria-hidden="true" />
 		</button>
 	{/if}
-	<svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true" class="shrink-0">
-		<rect x="5" y="0" width="6" height="3" rx="1.5" class="fill-jwt-header" />
-		<rect x="0" y="4.5" width="16" height="3" rx="1.5" class="fill-jwt-payload" />
-		<rect x="5" y="9" width="6" height="3" rx="1.5" class="fill-jwt-signature" />
-	</svg>
+	<AppMark />
 	{#if !showDrawerToggle}
 		<span class="text-sm font-semibold">OIDC Tester</span>
 	{/if}
@@ -97,7 +96,15 @@
 		<Ellipsis size={14} aria-hidden="true" />
 	</button>
 	<div class="flex-1 self-stretch" data-tauri-drag-region></div>
-	<ThemeToggle />
+	<button
+		type="button"
+		class="mr-1 btn btn-icon size-7 btn-ghost"
+		aria-label="Options"
+		aria-haspopup="menu"
+		onclick={(event) => contextMenu.openAt(event.currentTarget, optionsMenu(), 'Options')}
+	>
+		<MenuIcon size={16} aria-hidden="true" />
+	</button>
 	<div class="flex">
 		<button type="button" class={WINDOW_BUTTON} aria-label="Minimize" onclick={onminimize}>
 			&#xE921;

@@ -4,6 +4,7 @@ mod files;
 mod http;
 mod secrets;
 mod storage;
+mod system;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +26,7 @@ pub fn run() {
             storage::doc_delete,
             files::write_text_file,
             files::read_text_file,
+            system::system_info,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

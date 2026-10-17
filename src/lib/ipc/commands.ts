@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { getTauriVersion, getVersion } from '@tauri-apps/api/app';
+import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import type { HttpFailure, HttpExchange, HttpResult, IpcApi } from './types';
@@ -32,6 +33,15 @@ export const ipc: IpcApi = {
 	writeTextFile: (path, contents) => invoke('write_text_file', { path, contents }),
 	readTextFile: (path) => invoke('read_text_file', { path }),
 	openUrl: (url) => openUrl(url),
+	revealPath: (path) => revealItemInDir(path),
+	async appInfo() {
+		const [version, tauriVersion, system] = await Promise.all([
+			getVersion(),
+			getTauriVersion(),
+			invoke<{ dataDir: string; webviewVersion: string; os: string }>('system_info')
+		]);
+		return { version, tauriVersion, ...system };
+	},
 	pickSavePath: (opts) => saveDialog(opts),
 	pickOpenPath: async (opts) => {
 		const picked = await openDialog({ multiple: false, directory: false, ...opts });

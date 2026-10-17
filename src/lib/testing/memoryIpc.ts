@@ -12,6 +12,7 @@ export interface MemoryIpc extends IpcApi {
 	secrets: Map<string, string>;
 	files: Map<string, string>;
 	opened: string[];
+	revealed: string[];
 	calls: string[];
 	/** Make the next `secretSet` reject with this message. */
 	failSecretSet: string | null;
@@ -43,6 +44,7 @@ export function createMemoryIpc(): MemoryIpc {
 		secrets: new Map(),
 		files: new Map(),
 		opened: [],
+		revealed: [],
 		calls: [],
 		failSecretSet: null,
 		savePath: null,
@@ -105,6 +107,16 @@ export function createMemoryIpc(): MemoryIpc {
 			if (text === undefined) throw `file not found: ${path}`;
 			return text;
 		},
+		revealPath: async (path) => {
+			ipc.revealed.push(path);
+		},
+		appInfo: async () => ({
+			version: '0.1.0',
+			tauriVersion: '2.12.1',
+			webviewVersion: '131.0.0.0',
+			os: 'Windows 10.0.26300 (64-bit)',
+			dataDir: 'C:\\Users\\test\\AppData\\Roaming\\dev.oidctester.app'
+		}),
 		openUrl: async (url) => {
 			ipc.opened.push(url);
 		},

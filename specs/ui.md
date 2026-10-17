@@ -16,7 +16,7 @@ Given the `ThemeToggle` with System, Light, Dark
 When a choice is made
 Then it is stored in `localStorage` key `oidct.theme` and the `dark` class on `<html>` is set for Dark, removed for Light, and follows `prefers-color-scheme` for System
 And on load the stored value is applied
-And the toggle is a three-icon segmented control in the titlebar whose accessible names are `System`, `Light`, `Dark`
+And the toggle is a three-option segmented control in the Settings dialog `Appearance` section whose accessible names are `System`, `Light`, `Dark`, each with a visible label
 
 ### REQ-UI-003 Tokens-only colors
 
@@ -249,3 +249,29 @@ Then each token is wrapped in a span with `data-token` set to `key` (object memb
 And keys, strings, numbers and literals use the `json-key`, `json-string`, `json-number`, `json-literal` color tokens and punctuation uses `fg-muted`; whitespace is unwrapped text
 And the block's text content equals the unhighlighted pretty-printed JSON
 And non-JSON text in CodeView is shown verbatim without token spans
+
+### REQ-UI-024 Options menu
+
+Status: Accepted
+
+Given the titlebar
+Then a button `Options` (`aria-haspopup="menu"`, Lucide `menu` icon) sits directly left of the window buttons and no theme control is in the titlebar
+And when it is activated, a menu labelled `Options` opens with `Export…`, `Import…`, a separator, `Settings…`, `About OIDC Tester`
+
+### REQ-UI-025 About dialog
+
+Status: Accepted
+
+Given About
+Then it shows the app mark, `OIDC Tester`, `Version <getVersion()>`, the Tauri, WebView2 and OS versions, and the buttons `Copy diagnostics`, `Source code` (opens the repo URL `https://git.infinityreply.dev/f.rapetti/oidc-tester`) and `Report an issue` (opens `<repo>/-/issues`)
+And a collapsed `License` section holds the MIT text
+And a collapsed `Third-party licenses (<count>)` section has a `Filter packages` field that filters the list by case-insensitive name substring
+
+### REQ-UI-026 Diagnostics text
+
+Status: Accepted
+
+Given the About dialog
+When `Copy diagnostics` is activated
+Then exactly these lines joined with `\n` are copied: `OIDC Tester <version>`, `Tauri <tauriVersion>`, `WebView2 <webviewVersion>`, `OS <os>`, `Data folder <dataDir>`
+And the `Copied` notice is shown

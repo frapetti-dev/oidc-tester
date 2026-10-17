@@ -29,6 +29,18 @@
 		await expect(isDark()).toBe(matchMedia('(prefers-color-scheme: dark)').matches);
 	}}
 />
+<Story
+	name="REQ-UI-002 labeled toggle shows the option names"
+	args={{ labeled: true }}
+	play={async ({ canvas, userEvent }) => {
+		for (const name of ['System', 'Light', 'Dark']) {
+			await expect(canvas.getByText(name)).toBeVisible();
+		}
+		await userEvent.click(canvas.getByRole('radio', { name: 'Dark' }));
+		await expect(canvas.getByRole('radio', { name: 'Dark' })).toBeChecked();
+		await userEvent.click(canvas.getByRole('radio', { name: 'System' }));
+	}}
+/>
 
 <Story
 	name="REQ-UI-022 selected option uses accent"

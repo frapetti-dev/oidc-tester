@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import pkg from '../../../../package.json';
+	import AboutDialog from '#lib/components/options/AboutDialog.svelte';
+	import ExportDialog from '#lib/components/options/ExportDialog.svelte';
+	import ImportDialog from '#lib/components/options/ImportDialog.svelte';
+	import SettingsDialog from '#lib/components/options/SettingsDialog.svelte';
 	import ClientForm from '#lib/components/editors/ClientForm.svelte';
 	import FlowForm from '#lib/components/editors/FlowForm.svelte';
 	import IdpForm, { type DiscoveryOutcome } from '#lib/components/editors/IdpForm.svelte';
@@ -20,7 +24,7 @@
 	import type { MenuEntry } from '#lib/components/ui/menu.js';
 	import SplitPane from '#lib/components/ui/SplitPane.svelte';
 	import Tabs from '#lib/components/ui/Tabs.svelte';
-	import type { IpcApi } from '#lib/ipc/types.js';
+	import type { AppInfo, IpcApi } from '#lib/ipc/types.js';
 	import {
 		FLOW_TYPES,
 		FLOW_TYPE_LABELS,
@@ -29,11 +33,15 @@
 		type Flow,
 		type Idp
 	} from '#lib/model/schema.js';
+	import type { BundleSettings } from '#lib/model/settings.js';
+	import type { BundleEntry } from '#lib/model/workspaceFile.js';
 	import { callUserInfo, executeRun } from '#lib/run/engine.js';
 	import { tabForRun } from '#lib/run/tabs.js';
 	import { errorMessage } from '#lib/state/secrets.js';
 	import { RunnerStore } from '#lib/state/runner.svelte.js';
+	import { SettingsStore } from '#lib/state/settings.svelte.js';
 	import { WorkspaceStore } from '#lib/state/workspace.svelte.js';
+	import { themeController } from '#lib/theme/theme.js';
 	import { layoutMode } from './layout';
 
 	interface Props {
@@ -44,14 +52,17 @@
 
 	// The host is fixed for the lifetime of the app.
 	// svelte-ignore state_referenced_locally
-	const store = new WorkspaceStore(ipc);
+	const settings = new SettingsStore(ipc);
+	// svelte-ignore state_referenced_locally
+	const store = new WorkspaceStore(ipc, () => settings.current);
 	// svelte-ignore state_referenced_locally
 	const runner = new RunnerStore({
 		ipc,
 		repo: store.repo,
 		execute: executeRun,
 		userInfo: callUserInfo,
-		appVersion: pkg.version
+		appVersion: pkg.version,
+		historyLimit: () => settings.current.runHistoryLimit
 	});
 
 	/** REQ-UI-008: how long a finished run keeps the titlebar indicator green/red. */
@@ -74,6 +85,14 @@
 	}
 	let dialog = $state<({ kind: DialogKind } & DialogTarget) | null>(null);
 	let dialogOpen = $state(false);
+	let exportOpen = $state(false);
+	let importOpen = $state(false);
+	let importPreview = $state<{ entries: BundleEntry[]; settings: BundleSettings | null } | null>(
+		null
+	);
+	let settingsOpen = $state(false);
+	let aboutOpen = $state(false);
+	let appInfo = $state<AppInfo | null>(null);
 	let resultsTab = $state('tokens');
 	let editorTab = $state('flow');
 
@@ -118,11 +137,19 @@
 
 	onMount(() => {
 		void store.init();
+		void settings.load().then(() => {
+			if (settings.error) store.toast = settings.error;
+		});
+		ipc.appInfo().then(
+			(info) => (appInfo = info),
+			() => {}
+		);
 		const syncMaximized = () => void ipc.windowIsMaximized().then((m) => (maximized = m));
 		syncMaximized();
 		const unlisten = ipc.onWindowResized(syncMaximized);
 		return () => {
 			store.dispose();
+			settings.dispose();
 			window.clearTimeout(outcomeTimer);
 			void unlisten.then((stop) => stop());
 		};
@@ -245,7 +272,45 @@
 	}
 
 	function clearSession() {
-		ipc.browserClearSession().catch((e: unknown) => (store.toast = errorMessage(e)));
+		ipc.browserClearSession().then(
+			() => (store.toast = 'Auth browser session cleared'),
+			(e: unknown) => (store.toast = errorMessage(e))
+		);
+	}
+
+	function revealDataDir() {
+		if (!appInfo) return;
+		ipc.revealPath(appInfo.dataDir).catch((e: unknown) => (store.toast = errorMessage(e)));
+	}
+
+	async function openImport() {
+		const picked = await store.pickImport();
+		if (!picked) return;
+		importPreview = picked;
+		importOpen = true;
+	}
+
+	async function exportCounts(id: string) {
+		const loaded = await store.repo.load(id);
+		const runs = await store.repo.listRuns(id);
+		return { idps: loaded.ok ? loaded.workspace.idps.length : 0, runs: runs.length };
+	}
+
+	function exportSelected(ids: string[], opts: { runs: boolean; settings: boolean }) {
+		const bundleSettings: BundleSettings | null = opts.settings
+			? { ...$state.snapshot(settings.current), theme: themeController().mode }
+			: null;
+		void store.exportWorkspaces(ids, { runs: opts.runs, settings: bundleSettings });
+	}
+
+	async function importSelected(entries: BundleEntry[], applySettings: boolean) {
+		const fromFile = importPreview?.settings;
+		await store.importEntries(entries);
+		if (applySettings && fromFile) {
+			const { theme, ...rest } = fromFile;
+			settings.replace(rest);
+			themeController().set(theme);
+		}
 	}
 
 	function selectIdp(idpId: string) {
@@ -329,12 +394,23 @@
 		];
 	}
 
+	/** REQ-UI-024 */
+	function optionsMenu(): MenuEntry[] {
+		return [
+			{ label: 'Export…', onselect: () => void (exportOpen = true) },
+			{ label: 'Import…', onselect: () => void openImport() },
+			'separator',
+			{ label: 'Settings…', onselect: () => void (settingsOpen = true) },
+			{ label: 'About OIDC Tester', onselect: () => void (aboutOpen = true) }
+		];
+	}
+
 	function workspaceMenu(): MenuEntry[] {
 		return [
 			{ label: 'Save as workspace…', disabled: !isScratchpad, onselect: () => ask('saveAs') },
 			{ label: 'Rename…', disabled: isScratchpad, onselect: () => ask('rename') },
 			{ label: 'Export…', onselect: () => void store.exportCurrent() },
-			{ label: 'Import…', onselect: () => store.importWorkspace() },
+			{ label: 'Import…', onselect: () => void openImport() },
 			'separator',
 			{
 				label: isScratchpad ? 'Clear scratchpad…' : 'Delete workspace…',
@@ -439,6 +515,7 @@
 		{workspaceId}
 		onworkspacechange={(id) => void store.open(id)}
 		{workspaceMenu}
+		{optionsMenu}
 		showDrawerToggle={mode === 'narrow'}
 		{drawerOpen}
 		ontoggledrawer={() => (drawerOpen = !drawerOpen)}
@@ -558,3 +635,30 @@
 		onconfirm={(value) => void confirmDialog(value)}
 	/>
 {/if}
+
+<ExportDialog
+	bind:open={exportOpen}
+	workspaces={store.workspaces}
+	currentId={workspaceId}
+	counts={exportCounts}
+	onexport={exportSelected}
+/>
+
+{#if importPreview}
+	<ImportDialog
+		bind:open={importOpen}
+		entries={importPreview.entries}
+		hasSettings={importPreview.settings !== null}
+		onimport={(entries, applySettings) => void importSelected(entries, applySettings)}
+	/>
+{/if}
+
+<SettingsDialog
+	bind:open={settingsOpen}
+	{settings}
+	dataDir={appInfo?.dataDir ?? ''}
+	onreveal={revealDataDir}
+	onclearsession={clearSession}
+/>
+
+<AboutDialog bind:open={aboutOpen} info={appInfo} onopenurl={(url) => void ipc.openUrl(url)} />

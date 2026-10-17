@@ -8,6 +8,14 @@ export interface ProxySpec {
 	url: string | null;
 }
 
+export interface AppInfo {
+	version: string;
+	tauriVersion: string;
+	webviewVersion: string;
+	os: string;
+	dataDir: string;
+}
+
 export type Header = [name: string, value: string];
 
 export interface HttpRequestSpec {
@@ -100,6 +108,10 @@ export interface IpcApi {
 	readTextFile(path: string): Promise<string>;
 	/** Opens a URL in the system browser (opener plugin). */
 	openUrl(url: string): Promise<void>;
+	/** Reveals a path in the system file manager. */
+	revealPath(path: string): Promise<void>;
+	/** Versions and locations shown in the About dialog. */
+	appInfo(): Promise<AppInfo>;
 	/** Native save dialog; null when cancelled. */
 	pickSavePath(opts: {
 		defaultPath?: string;

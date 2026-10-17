@@ -50,6 +50,7 @@ And <more>
 | ui.md          | UI    | UI shell and theme              |
 | e2e.md         | E2E   | End-to-end journeys             |
 | tooling.md     | TOOL  | Spec coverage tooling           |
+| settings.md    | SET   | Global settings                 |
 
 ## Traceability
 
