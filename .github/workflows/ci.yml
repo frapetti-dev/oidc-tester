@@ -37,7 +37,7 @@ jobs:
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
@@ -49,7 +49,7 @@ jobs:
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with: { ref: '${{ inputs.ref }}' }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}' }
       # Same as `pnpm spec:check`; node built-ins only, no install needed.
       - run: node scripts/spec-coverage.ts
@@ -71,7 +71,7 @@ jobs:
         with: { ref: '${{ inputs.ref }}' }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
@@ -101,7 +101,7 @@ jobs:
         with: { workspaces: src-tauri, key: release }
       - uses: pnpm/action-setup@v4
         with: { version: '${{ env.PNPM_VERSION }}' }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Build NSIS installer
