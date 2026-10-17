@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to test and build (tag for releases)
+        type: string
+        required: true
+      version:
+        description: Version injected into the installer (no leading v)
+        type: string
+        required: true
+
+concurrency:
+  group: ci-${{ inputs.ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: 11.15.1
+  NODE_VERSION: '24'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  spec-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      # Same as `pnpm spec:check`; node built-ins only, no install needed.
+      - run: node scripts/spec-coverage.ts
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      # Hosted runners are slower than a workstation; browser tests hit the default timeout.
+      - run: pnpm test:unit --testTimeout=60000
+
+  rust-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri, key: test }
+      # generate_context! needs ../build to exist.
+      - run: mkdir -p build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+  build-installer:
+    runs-on: windows-latest
+    needs: [check, lint, spec-coverage, unit-tests, rust-tests]
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: '${{ inputs.ref }}' }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri, key: release }
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Build NSIS installer
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -- --bundles nsis
+          if [ -n "$VERSION" ]; then set -- "$@" --config "{\"version\":\"$VERSION\"}"; fi
+          pnpm tauri build "$@"
+      - name: Stage installer
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p dist
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "dist/oidc-tester_${VERSION:-${GITHUB_SHA::8}}_x64-setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 7

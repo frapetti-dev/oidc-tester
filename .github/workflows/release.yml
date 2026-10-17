@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release (e.g. v0.2.0)
+        type: string
+        required: true
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - id: v
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "Tag $TAG is not a release tag"; exit 1; }
+          git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || { echo "Tag $TAG does not exist"; exit 1; }
+          SHA=$(git rev-list -n 1 "$TAG")
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "Tag $TAG ($SHA) is not on main"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+  ci:
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.verify.outputs.tag }}
+      version: ${{ needs.verify.outputs.version }}
+
+  release:
+    needs: [verify, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0, ref: '${{ needs.verify.outputs.tag }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: installer, path: dist }
+      - name: Release notes
+        run: |
+          if PREV=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude 'v*-*' "$TAG^" 2>/dev/null); then
+            RANGE="$PREV..$TAG"
+          else
+            RANGE="$TAG"
+          fi
+          echo "Changelog range: $RANGE"
+          git log --no-merges --format='- %s (%h)' "$RANGE" > release-notes.md
+          cat release-notes.md
+      - name: Create release
+        run: |
+          PRE=()
+          [[ "$VERSION" == *-* ]] && PRE=(--prerelease)
+          gh release create "$TAG" \
+            "dist/oidc-tester_${VERSION}_x64-setup.exe#OIDC Tester ${VERSION} setup (Windows x64)" \
+            --title "OIDC Tester $VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag "${PRE[@]}"
