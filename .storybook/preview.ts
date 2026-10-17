@@ -1,4 +1,4 @@
-import type { Preview } from '@storybook/sveltekit';
+import type { Preview } from '@storybook/svelte-vite';
 import { addons } from 'storybook/preview-api';
 import { GLOBALS_UPDATED } from 'storybook/internal/core-events';
 import '../src/app.css';

@@ -1,7 +1,7 @@
-import type { StorybookConfig } from '@storybook/sveltekit';
+import type { StorybookConfig } from '@storybook/svelte-vite';
 
 const config: StorybookConfig = {
-	stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|ts|svelte)'],
+	stories: ['../src/**/*.stories.@(js|ts|svelte)'],
 	addons: [
 		'@storybook/addon-svelte-csf',
 		'@chromatic-com/storybook',
@@ -9,6 +9,9 @@ const config: StorybookConfig = {
 		'@storybook/addon-a11y',
 		'@storybook/addon-docs'
 	],
-	framework: '@storybook/sveltekit'
+	framework: {
+		name: '@storybook/svelte-vite',
+		options: { builder: { viteConfigPath: '.storybook/vite.config.ts' } }
+	}
 };
 export default config;

@@ -5,6 +5,7 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import path from 'node:path';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { compilerOptions } from './svelte-compiler-options.ts';
 const dirname = import.meta.dirname;
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
@@ -12,11 +13,7 @@ export default defineConfig({
 	plugins: [
 		tailwindcss(),
 		sveltekit({
-			compilerOptions: {
-				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) =>
-					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
-			},
+			compilerOptions,
 			adapter: adapter({ fallback: 'index.html' })
 		})
 	],
@@ -57,7 +54,7 @@ export default defineConfig({
 				}
 			},
 			{
-				extends: true,
+				extends: './.storybook/vite.config.ts',
 				plugins: [
 					// The plugin will run tests for the stories defined in your Storybook config
 					// See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
@@ -67,6 +64,7 @@ export default defineConfig({
 				],
 				test: {
 					name: 'storybook',
+					expect: { requireAssertions: true },
 					browser: {
 						enabled: true,
 						headless: true,
