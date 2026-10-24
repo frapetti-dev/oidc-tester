@@ -79,7 +79,7 @@
 		"@tauri-apps/plugin-dialog": "~2.8.1",
 		"@tauri-apps/plugin-opener": "~2.7.0",
 		"jose": "^6.2.12",
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"imports": {
 		"#lib": "./src/lib/index.js",
